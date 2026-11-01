@@ -2,9 +2,10 @@
 *.local
 node_modules/
 web/dist/
-backend/bin/
+bin/
 tmp/
 .DS_Store
 coverage/
 playwright-report/
 test-results/
+node_modules/.tmp/

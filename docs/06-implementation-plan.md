@@ -21,7 +21,7 @@ Goal: `sun` (stateless) and `identity` (stateful) running in the cluster
 with logs in Loki. Everything cross-cutting exists once in `pkg/`.
 
 Tasks
-- [ ] 0.1 Repo init: single `go.mod` (`github.com/timkrebs/shotlyst`), `web/` Vite React TS app, `Makefile`, `.golangci.yml` (incl. `dupl`, `revive` with doc-comment rule), `.editorconfig`.
+- [x] 0.1 Repo init: single `go.mod` (`github.com/timkrebs/shotlyst`), `web/` Vite React TS app, `Makefile`, `.golangci.yml` (incl. `dupl`, `revive` with doc-comment rule), `.editorconfig`.
 - [ ] 0.2 `pkg/config`: env loading (`Load(prefix, &struct)`), required/default tags, `String()` that redacts secrets. Tests.
 - [ ] 0.3 `pkg/logx`: slog JSON/text handler; base fields (service, version, pod, namespace, node); `From(ctx)` / `With(ctx, logger)`; request-logging + panic-recovery middleware; `Redact`. Tests assert field presence.
 - [ ] 0.4 `pkg/httpx`: `NewRouter(opts)` with the standard middleware stack (request-id, real-ip, logx, recover, metrics, CSRF header check, timeout); `Problem` helpers (RFC 7807); `DecodeJSON`/`Encode`; `/healthz`, `/readyz`, `/metrics`. Tests.

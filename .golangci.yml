@@ -31,3 +31,8 @@ linters:
     paths:
       - services/.*/store/gen   # sqlc output
       - web
+    rules:
+      # Tests build requests from scratch; threading a context through every
+      # httptest call adds noise without catching anything.
+      - path: _test\.go
+        linters: [noctx]
