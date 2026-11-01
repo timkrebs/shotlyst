@@ -1,0 +1,153 @@
+# CI/CD for Shotlyst (docs/07-deployment.md §4).
+#
+#   lint-test  make lint test, generated code up to date
+#   helm       make helm-lint (lint + template snapshot)
+#   build      one image per service + web → GHCR (push on main and tags only)
+#   deploy     on v* tags: helm upgrade on the self-hosted runner in the homelab
+#
+# Every check is a Makefile target so CI and laptops run the same commands.
+# Hosted runners do the building (they have Docker for testcontainers); only
+# deploy needs the self-hosted runner, because only it can reach the cluster.
+name: ci
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/shotlyst
+  NODE_VERSION: "22"   # matches web/Dockerfile
+  HELM_VERSION: v3.22.1
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.15.0
+          install-only: true
+      - run: npm ci
+        working-directory: web
+      - run: make lint
+      - run: make test
+      # sqlc output and the OpenAPI TS clients are committed; fail if they
+      # drift from queries/*.sql or api/*.yaml.
+      - name: generated code is up to date
+        run: |
+          make gen
+          git diff --exit-code || { echo "::error::run 'make gen' and commit the result"; exit 1; }
+
+  helm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v5
+        with:
+          version: ${{ env.HELM_VERSION }}
+      - run: make helm-lint
+
+  build:
+    needs: [lint-test, helm]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        # One entry per service in values.services, plus web.
+        include:
+          - { name: identity, context: ., file: Dockerfile }
+          - { name: sun,      context: ., file: Dockerfile }
+          - { name: web,      context: web, file: web/Dockerfile }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        if: github.event_name == 'push'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # Tags: the full git SHA always; the git tag (vX.Y.Z) on releases.
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE_PREFIX }}-${{ matrix.name }}
+          tags: |
+            type=sha,prefix=,format=long
+            type=ref,event=tag
+      - uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          platforms: linux/amd64
+          build-args: |
+            SERVICE=${{ matrix.name }}
+            VERSION=${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  deploy:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build]
+    runs-on: [self-hosted, homelab]
+    timeout-minutes: 20
+    # Protection rules and the secrets below live on this environment.
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v5
+        with:
+          version: ${{ env.HELM_VERSION }}
+      # KUBECONFIG: kubeconfig for a ServiceAccount scoped to the shotlyst
+      # namespace. HELM_VALUES: the private values file (host, auth keys,
+      # S3 credentials) — see deploy/helm/shotlyst/README.md.
+      - name: write credentials
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
+          HELM_VALUES: ${{ secrets.HELM_VALUES }}
+        run: |
+          umask 077
+          printf '%s' "$KUBECONFIG_CONTENT" > "$RUNNER_TEMP/kubeconfig"
+          printf '%s' "$HELM_VALUES" > "$RUNNER_TEMP/values.yaml"
+      - name: helm upgrade
+        env:
+          KUBECONFIG: ${{ runner.temp }}/kubeconfig
+        run: |
+          helm upgrade --install shotlyst deploy/helm/shotlyst \
+            -n shotlyst \
+            -f "$RUNNER_TEMP/values.yaml" \
+            --set image.tag="${GITHUB_REF_NAME}" \
+            --wait --timeout 10m
+      - name: remove credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/kubeconfig" "$RUNNER_TEMP/values.yaml"

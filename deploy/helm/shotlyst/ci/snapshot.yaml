@@ -21,7 +21,6 @@ spec:
       ports:
         - { protocol: UDP, port: 53 }
         - { protocol: TCP, port: 53 }
-
 ---
 # Source: shotlyst/templates/networkpolicy.yaml
 apiVersion: networking.k8s.io/v1
@@ -47,7 +46,6 @@ spec:
         - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: monitoring } }
       ports:
         - { protocol: TCP, port: 8080 }
-
 ---
 # Source: shotlyst/templates/networkpolicy.yaml
 apiVersion: networking.k8s.io/v1
@@ -73,7 +71,6 @@ spec:
       to:
         - podSelector:
             matchLabels: { cnpg.io/cluster: shotlyst-pg }
-
 ---
 # Source: shotlyst/templates/secrets.yaml
 apiVersion: v1
@@ -89,7 +86,6 @@ type: Opaque
 stringData:
   privateKey: "dGVzdC1vbmx5LXByaXZhdGUta2V5"
   publicKey: "dGVzdC1vbmx5LXB1YmxpYy1rZXk="
-
 ---
 # Source: shotlyst/templates/secrets.yaml
 apiVersion: v1
@@ -107,7 +103,6 @@ stringData:
   username: identity
   password: "52c391de802171550006945bb7a31792"
   url: "postgres://identity:52c391de802171550006945bb7a31792@shotlyst-pg-rw:5432/shotlyst?sslmode=require"
-
 ---
 # Source: shotlyst/templates/services.yaml
 apiVersion: v1
@@ -127,7 +122,6 @@ spec:
     app.kubernetes.io/component: identity
   ports:
     - { name: http, port: 8080, targetPort: http }
-
 ---
 # Source: shotlyst/templates/services.yaml
 apiVersion: v1
@@ -147,7 +141,6 @@ spec:
     app.kubernetes.io/component: sun
   ports:
     - { name: http, port: 8080, targetPort: http }
-
 ---
 # Source: shotlyst/templates/web.yaml
 apiVersion: v1
@@ -167,7 +160,6 @@ spec:
     app.kubernetes.io/component: web
   ports:
     - { name: http, port: 8080, targetPort: http }
-
 ---
 # Source: shotlyst/templates/services.yaml
 apiVersion: apps/v1
@@ -265,7 +257,6 @@ spec:
             readOnlyRootFilesystem: true
             capabilities: { drop: ["ALL"] }
             seccompProfile: { type: RuntimeDefault }
-
 ---
 # Source: shotlyst/templates/services.yaml
 apiVersion: apps/v1
@@ -358,7 +349,6 @@ spec:
             readOnlyRootFilesystem: true
             capabilities: { drop: ["ALL"] }
             seccompProfile: { type: RuntimeDefault }
-
 ---
 # Source: shotlyst/templates/web.yaml
 apiVersion: apps/v1
@@ -422,7 +412,6 @@ spec:
       volumes:
         - name: tmp
           emptyDir: { sizeLimit: 16Mi }
-
 ---
 # Source: shotlyst/templates/ingress.yaml
 apiVersion: networking.k8s.io/v1
@@ -460,7 +449,6 @@ spec:
               service:
                 name: shotlyst-web
                 port: { name: http }
-
 ---
 # Source: shotlyst/templates/postgres-cnpg.yaml
 apiVersion: postgresql.cnpg.io/v1
@@ -494,7 +482,6 @@ spec:
         inherit: true
         passwordSecret:
           name: shotlyst-db-identity
-
 ---
 # Source: shotlyst/templates/postgres-cnpg.yaml
 apiVersion: postgresql.cnpg.io/v1
@@ -515,7 +502,6 @@ spec:
     - name: identity
       owner: identity
       ensure: present
-
 ---
 # Source: shotlyst/templates/prometheusrule.yaml
 apiVersion: monitoring.coreos.com/v1
@@ -550,7 +536,6 @@ spec:
           labels: { severity: warning }
           annotations:
             summary: "{{ $labels.pod }} not ready for 2 minutes (see 'dependency unavailable' in Loki)"
-
 ---
 # Source: shotlyst/templates/servicemonitor.yaml
 apiVersion: monitoring.coreos.com/v1
@@ -653,4 +638,3 @@ spec:
             readOnlyRootFilesystem: true
             capabilities: { drop: ["ALL"] }
             seccompProfile: { type: RuntimeDefault }
-

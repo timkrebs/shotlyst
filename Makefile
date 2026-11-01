@@ -66,9 +66,11 @@ HELM_TPL  := helm template shotlyst $(CHART) -n shotlyst -f $(CHART)/ci/test-val
 	--api-versions monitoring.coreos.com/v1/PrometheusRule
 
 ## helm-lint: lint the chart and diff the rendered output against the snapshot
+# (snapshot rendered with Helm 3 as in CI; -B ignores the blank lines Helm 4
+# adds between documents, so the target works with either locally)
 helm-lint:
 	helm lint $(CHART) -f $(CHART)/ci/test-values.yaml
-	$(HELM_TPL) | diff -u $(SNAPSHOT) - || { echo "chart output changed; review and run 'make helm-snapshot'"; exit 1; }
+	$(HELM_TPL) | diff -uB $(SNAPSHOT) - || { echo "chart output changed; review and run 'make helm-snapshot'"; exit 1; }
 
 ## helm-snapshot: accept the current chart output as the new snapshot
 helm-snapshot:

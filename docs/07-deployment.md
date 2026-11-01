@@ -124,14 +124,31 @@ CRDs are missing, and without `auth.privateKey`/`publicKey` (unless
 Prometheus Operator CRDs exist; the `prometheus.io/*` pod annotations are
 the scrape contract otherwise.
 
-## 4. CI/CD (GitHub Actions, self-hosted runner)
+## 4. CI/CD (GitHub Actions)
 
-1. `lint-test`: `make lint test` (Postgres via testcontainers on the runner).
-2. `build`: matrix over services → `docker build --build-arg SERVICE=$svc`,
-   push `ghcr.io/…/shotlyst-$svc:$sha` (+ `:vX.Y.Z` on tags).
-3. `deploy` (on tag): `helm upgrade --install … --set image.tag=$tag` using
-   a kubeconfig secret scoped to the `shotlyst` namespace.
-   Alternative: Argo CD / Flux watching `deploy/` — add later if desired.
+`.github/workflows/ci.yml`, on pushes to `main`, `v*` tags and PRs:
+
+1. `lint-test`: `make lint test`, then `make gen` must leave no diff
+   (Postgres via testcontainers on the runner's Docker).
+2. `helm`: `make helm-lint` with Helm 3 (lint + template snapshot).
+3. `build`: matrix over services + web → `docker build --build-arg
+   SERVICE=$svc`, push `ghcr.io/<owner>/shotlyst-$svc:$sha` (+ `:vX.Y.Z`
+   on tags). PRs build without pushing. Add new services to the matrix.
+4. `deploy` (on tag): `helm upgrade --install … --set image.tag=$tag --wait`
+   using a kubeconfig scoped to the `shotlyst` namespace.
+
+Jobs 1–3 run on GitHub-hosted runners; only `deploy` runs on the
+self-hosted runner (labels `self-hosted, homelab`), since it is the only
+job that needs to reach the cluster. Setup for `deploy`, once:
+
+- a GitHub environment `production` with secrets `KUBECONFIG` (namespace-
+  scoped ServiceAccount) and `HELM_VALUES` (the private values file from the
+  chart README);
+- GHCR packages are private when first pushed: either make the
+  `shotlyst-*` packages public or create a pull secret in the namespace and
+  set `image.pullSecrets`.
+
+Alternative: Argo CD / Flux watching `deploy/` — add later if desired.
 
 ## 5. Backup & restore
 
