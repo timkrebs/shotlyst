@@ -26,7 +26,7 @@ Tasks
 - [x] 0.3 `pkg/logx`: slog JSON/text handler; base fields (service, version, pod, namespace, node); `From(ctx)` / `With(ctx, logger)`; request-logging + panic-recovery middleware; `Redact`. Tests assert field presence.
 - [ ] 0.4 `pkg/httpx`: `NewRouter(opts)` with the standard middleware stack (request-id, real-ip, logx, recover, metrics, CSRF header check, timeout); `Problem` helpers (RFC 7807); `DecodeJSON`/`Encode`; `/healthz`, `/readyz`, `/metrics`. Tests.
 - [x] 0.5 `pkg/metrics`: Prometheus registry + HTTP/outbound/db collectors.
-- [ ] 0.6 `pkg/dbx`: pgx pool from URL, `search_path` per service schema, goose runner with embedded FS, `Tx(ctx, fn)`, testcontainers helper `dbx/dbtest`.
+- [x] 0.6 `pkg/dbx`: pgx pool from URL, `search_path` per service schema, goose runner with embedded FS, `Tx(ctx, fn)`, testcontainers helper `dbx/dbtest`.
 - [ ] 0.7 `pkg/authx`: Ed25519 keypair gen CLI (`go run ./cmd/keygen`), `Sign(payload)`, `Verify(token)`, cookie read/write, `RequireUser` middleware, `UserID(ctx)`. Tests incl. expiry and tamper.
 - [ ] 0.8 `pkg/clientx`: base client (timeouts, retry for idempotent, request-id + bearer propagation, outbound logging/metrics), TTL cache helper. Tests with httptest.
 - [ ] 0.9 `pkg/app`: `Run(Options)` — loads config, builds logger, opens DB if `Migrations != nil`, runs migrations if `AUTO_MIGRATE`, mounts routes, starts server, graceful shutdown on SIGTERM, `migrate` subcommand for the Helm hook Job. This is the **only** thing any `main.go` calls.
