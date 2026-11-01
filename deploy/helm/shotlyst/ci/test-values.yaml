@@ -1,0 +1,9 @@
+# Fixed values for `helm lint` and the template snapshot (make helm-lint).
+# The keys are placeholders, not real Ed25519 material; never deploy these.
+image:
+  tag: snapshot
+auth:
+  privateKey: dGVzdC1vbmx5LXByaXZhdGUta2V5
+  publicKey: dGVzdC1vbmx5LXB1YmxpYy1rZXk=
+postgres:
+  passwordSeed: test-only-seed

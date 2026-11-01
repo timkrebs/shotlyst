@@ -1,0 +1,24 @@
+{{/*
+One ServiceMonitor for all Shotlyst HTTP services (Prometheus Operator).
+Rendered only when its CRD exists; otherwise the prometheus.io/* pod
+annotations are the scrape contract.
+*/}}
+{{- if and .Values.monitoring.serviceMonitor.enabled (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor") }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Release.Name }}
+  labels: {{- include "shotlyst.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: shotlyst
+      app.kubernetes.io/instance: {{ .Release.Name }}
+    matchExpressions:
+      - { key: app.kubernetes.io/component, operator: In, values: [{{ keys .Values.services | sortAlpha | join ", " }}] }
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+{{- end }}

@@ -1,0 +1,81 @@
+{{/*
+Single-pod object storage for media (M1). Disabled by default until the
+S3 implementation is decided (MinIO images are no longer freely published).
+*/}}
+{{- if .Values.s3.minio.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-minio
+  labels:
+    {{- include "shotlyst.labels" . | nindent 4 }}
+    app.kubernetes.io/component: minio
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: { storage: {{ .Values.s3.minio.storage }} }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-minio
+  labels:
+    {{- include "shotlyst.labels" . | nindent 4 }}
+    app.kubernetes.io/component: minio
+spec:
+  replicas: 1
+  strategy: { type: Recreate }   # RWO volume
+  selector:
+    matchLabels:
+      {{- include "shotlyst.selector" (dict "Release" .Release "component" "minio") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "shotlyst.labels" . | nindent 8 }}
+        app.kubernetes.io/component: minio
+    spec:
+      {{- include "shotlyst.podSpec" . | nindent 6 }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: minio
+          image: {{ .Values.s3.minio.image }}
+          args: ["server", "/data"]
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom: { secretKeyRef: { name: {{ include "shotlyst.s3Secret" . }}, key: accessKey } }
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ include "shotlyst.s3Secret" . }}, key: secretKey } }
+          ports:
+            - { name: http, containerPort: 9000 }
+          readinessProbe:
+            httpGet: { path: /minio/health/ready, port: http }
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: {{ .Release.Name }}-minio }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-minio
+  labels:
+    {{- include "shotlyst.labels" . | nindent 4 }}
+    app.kubernetes.io/component: minio
+spec:
+  selector:
+    {{- include "shotlyst.selector" (dict "Release" .Release "component" "minio") | nindent 4 }}
+  ports:
+    - { name: http, port: 9000, targetPort: http }
+{{- end }}

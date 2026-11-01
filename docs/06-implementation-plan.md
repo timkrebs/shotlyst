@@ -34,7 +34,7 @@ Tasks
 - [x] 0.11 `services/identity`: migrations (`identity` schema: users, sessions), register/login/logout/refresh/me, argon2id, rate limit on login/register (in-memory token bucket, fine for one replica). Tests.
 - [x] 0.12 OpenAPI: `api/sun.yaml`, `api/identity.yaml`; `make gen` produces TS clients.
 - [x] 0.13 `Dockerfile` (generic, `ARG SERVICE`, distroless, non-root, `-ldflags "-X main.version=…"`), `docker-compose.yml` (postgres, minio, caddy router, sun, identity, web dev), `.env.example`.
-- [ ] 0.14 Helm chart per `docs/07-deployment.md`: generic service template, web, ingress, secrets, CNPG cluster + roles/schemas, MinIO, migration hook Job, ServiceMonitor, NetworkPolicy. `helm lint` + `helm template` snapshot test in CI.
+- [x] 0.14 Helm chart per `docs/07-deployment.md`: generic service template, web, ingress, secrets, CNPG cluster + roles/schemas, MinIO, migration hook Job, ServiceMonitor, NetworkPolicy. `helm lint` + `helm template` snapshot test in CI.
 - [ ] 0.15 GitHub Actions: lint, test, build matrix (per service), push to GHCR, helm lint; `deploy` job on tag.
 - [ ] 0.16 Frontend shell: Tailwind, TanStack Router/Query, theme, i18n, login/register pages against identity.
 - [ ] 0.17 Deploy to the homelab cluster. Verify: pods ready, `/readyz` green, Loki shows `starting`/`listening` lines with pod fields, Grafana query from `docs/08-observability.md` §3 returns the login request line.

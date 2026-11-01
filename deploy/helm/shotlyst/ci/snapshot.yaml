@@ -1,0 +1,656 @@
+---
+# Source: shotlyst/templates/networkpolicy.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: shotlyst-default-deny
+  labels:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/version: "snapshot"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: shotlyst
+      app.kubernetes.io/name: shotlyst
+  policyTypes: [Ingress, Egress]
+  egress:
+    - to:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: kube-system } }
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+
+---
+# Source: shotlyst/templates/networkpolicy.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: shotlyst-allow-http-in
+  labels:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/version: "snapshot"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: shotlyst
+      app.kubernetes.io/name: shotlyst
+    matchExpressions:
+      - { key: app.kubernetes.io/component, operator: In, values: [web, identity, sun] }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: ingress-nginx } }
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: monitoring } }
+      ports:
+        - { protocol: TCP, port: 8080 }
+
+---
+# Source: shotlyst/templates/networkpolicy.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: shotlyst-allow-postgres
+  labels:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/version: "snapshot"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: shotlyst
+      app.kubernetes.io/name: shotlyst
+      shotlyst.io/db: "true"
+  policyTypes: [Egress]
+  egress:
+    # External database: any destination on 5432; otherwise only the CNPG pods.
+    - ports:
+        - { protocol: TCP, port: 5432 }
+      to:
+        - podSelector:
+            matchLabels: { cnpg.io/cluster: shotlyst-pg }
+
+---
+# Source: shotlyst/templates/secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: shotlyst-auth
+  labels:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/version: "snapshot"
+    app.kubernetes.io/managed-by: Helm
+type: Opaque
+stringData:
+  privateKey: "dGVzdC1vbmx5LXByaXZhdGUta2V5"
+  publicKey: "dGVzdC1vbmx5LXB1YmxpYy1rZXk="
+
+---
+# Source: shotlyst/templates/secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: shotlyst-db-identity
+  labels:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/version: "snapshot"
+    app.kubernetes.io/managed-by: Helm
+    cnpg.io/reload: "true"   # CNPG re-applies the role password on change
+type: kubernetes.io/basic-auth
+stringData:
+  username: identity
+  password: "52c391de802171550006945bb7a31792"
+  url: "postgres://identity:52c391de802171550006945bb7a31792@shotlyst-pg-rw:5432/shotlyst?sslmode=require"
+
+---
+# Source: shotlyst/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: shotlyst-identity
+  labels:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/version: "snapshot"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: identity
+spec:
+  selector:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/component: identity
+  ports:
+    - { name: http, port: 8080, targetPort: http }
+
+---
+# Source: shotlyst/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: shotlyst-sun
+  labels:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/version: "snapshot"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: sun
+spec:
+  selector:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/component: sun
+  ports:
+    - { name: http, port: 8080, targetPort: http }
+
+---
+# Source: shotlyst/templates/web.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: shotlyst-web
+  labels:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/version: "snapshot"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: web
+spec:
+  selector:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/component: web
+  ports:
+    - { name: http, port: 8080, targetPort: http }
+
+---
+# Source: shotlyst/templates/services.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shotlyst-identity
+  labels:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/version: "snapshot"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: identity
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: shotlyst
+      app.kubernetes.io/instance: shotlyst
+      app.kubernetes.io/component: identity
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: shotlyst
+        app.kubernetes.io/instance: shotlyst
+        app.kubernetes.io/version: "snapshot"
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: identity
+        
+        shotlyst.io/db: "true"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: /metrics
+        # Env from Secrets is read only at start: roll the pods when a secret
+        # this service mounts changes (public key, identity's private key,
+        # derived DB password). Vault-managed secrets are not covered.
+        checksum/secrets: 2d5328f038447eb2
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      terminationGracePeriodSeconds: 20   # app drains for up to 15 s on SIGTERM
+      containers:
+        - name: identity
+          image: ghcr.io/timkrebs/shotlyst-identity:snapshot
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: http, containerPort: 8080 }
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: POD_NAMESPACE
+              valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
+            - name: NODE_NAME
+              valueFrom: { fieldRef: { fieldPath: spec.nodeName } }
+            - name: GOMEMLIMIT
+              valueFrom: { resourceFieldRef: { resource: limits.memory } }
+            - name: SHOTLYST_LOG_FORMAT
+              value: json
+            - name: SHOTLYST_LOG_LEVEL
+              value: "info"
+            - name: SHOTLYST_AUTO_MIGRATE
+              value: "false"
+            - name: SHOTLYST_TRUSTED_PROXIES
+              value: "1"
+            - name: SHOTLYST_BASE_URL
+              value: "http://shotlyst.home.local"
+            - name: SHOTLYST_AUTH_PUBLIC_KEY
+              valueFrom: { secretKeyRef: { name: shotlyst-auth, key: publicKey } }
+            - name: SHOTLYST_DATABASE_URL
+              valueFrom: { secretKeyRef: { name: shotlyst-db-identity, key: url } }
+            - name: SHOTLYST_AUTH_PRIVATE_KEY
+              valueFrom: { secretKeyRef: { name: shotlyst-auth, key: privateKey } }
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+          resources:
+            limits:
+              memory: 128Mi
+            requests:
+              cpu: 20m
+              memory: 48Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+
+---
+# Source: shotlyst/templates/services.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shotlyst-sun
+  labels:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/version: "snapshot"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: sun
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: shotlyst
+      app.kubernetes.io/instance: shotlyst
+      app.kubernetes.io/component: sun
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: shotlyst
+        app.kubernetes.io/instance: shotlyst
+        app.kubernetes.io/version: "snapshot"
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: sun
+        
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: /metrics
+        # Env from Secrets is read only at start: roll the pods when a secret
+        # this service mounts changes (public key, identity's private key,
+        # derived DB password). Vault-managed secrets are not covered.
+        checksum/secrets: e7ed8e9dda6310ca
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      terminationGracePeriodSeconds: 20   # app drains for up to 15 s on SIGTERM
+      containers:
+        - name: sun
+          image: ghcr.io/timkrebs/shotlyst-sun:snapshot
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: http, containerPort: 8080 }
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: POD_NAMESPACE
+              valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
+            - name: NODE_NAME
+              valueFrom: { fieldRef: { fieldPath: spec.nodeName } }
+            - name: GOMEMLIMIT
+              valueFrom: { resourceFieldRef: { resource: limits.memory } }
+            - name: SHOTLYST_LOG_FORMAT
+              value: json
+            - name: SHOTLYST_LOG_LEVEL
+              value: "info"
+            - name: SHOTLYST_AUTO_MIGRATE
+              value: "false"
+            - name: SHOTLYST_TRUSTED_PROXIES
+              value: "1"
+            - name: SHOTLYST_BASE_URL
+              value: "http://shotlyst.home.local"
+            - name: SHOTLYST_AUTH_PUBLIC_KEY
+              valueFrom: { secretKeyRef: { name: shotlyst-auth, key: publicKey } }
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+          resources:
+            limits:
+              memory: 128Mi
+            requests:
+              cpu: 20m
+              memory: 48Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+
+---
+# Source: shotlyst/templates/web.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shotlyst-web
+  labels:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/version: "snapshot"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: shotlyst
+      app.kubernetes.io/instance: shotlyst
+      app.kubernetes.io/component: web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: shotlyst
+        app.kubernetes.io/instance: shotlyst
+        app.kubernetes.io/version: "snapshot"
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: web
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: web
+          image: ghcr.io/timkrebs/shotlyst-web:snapshot
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: http, containerPort: 8080 }
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+          resources:
+            limits:
+              memory: 64Mi
+            requests:
+              cpu: 10m
+              memory: 16Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 101
+            runAsGroup: 101
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: tmp
+          emptyDir: { sizeLimit: 16Mi }
+
+---
+# Source: shotlyst/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shotlyst
+  labels:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/version: "snapshot"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    {}
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: "shotlyst.home.local"
+      http:
+        paths:
+          - path: /api/v1/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: shotlyst-identity
+                port: { name: http }
+          - path: /api/v1/sun
+            pathType: Prefix
+            backend:
+              service:
+                name: shotlyst-sun
+                port: { name: http }
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shotlyst-web
+                port: { name: http }
+
+---
+# Source: shotlyst/templates/postgres-cnpg.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: shotlyst-pg
+  labels:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/version: "snapshot"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  instances: 1
+  storage:
+    size: 5Gi
+  resources:
+    limits:
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 512Mi
+  bootstrap:
+    initdb:
+      database: shotlyst
+      owner: shotlyst
+  managed:
+    roles:
+      - name: identity
+        ensure: present
+        login: true
+        inherit: true
+        passwordSecret:
+          name: shotlyst-db-identity
+
+---
+# Source: shotlyst/templates/postgres-cnpg.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: shotlyst-pg-shotlyst
+  labels:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/version: "snapshot"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  name: shotlyst
+  owner: shotlyst
+  cluster:
+    name: shotlyst-pg
+  schemas:
+    - name: identity
+      owner: identity
+      ensure: present
+
+---
+# Source: shotlyst/templates/prometheusrule.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: shotlyst
+  labels:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/version: "snapshot"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  groups:
+    - name: shotlyst
+      rules:
+        - alert: ShotlystPodRestarting
+          expr: increase(kube_pod_container_status_restarts_total{namespace="shotlyst"}[15m]) > 2
+          labels: { severity: warning }
+          annotations:
+            summary: "{{ $labels.pod }} restarted more than twice in 15 minutes"
+        - alert: ShotlystErrorRate
+          expr: |
+            sum(rate(http_requests_total{status=~"5..", namespace="shotlyst"}[5m])) by (service)
+              / sum(rate(http_requests_total{namespace="shotlyst"}[5m])) by (service) > 0.05
+          for: 5m
+          labels: { severity: warning }
+          annotations:
+            summary: "{{ $labels.service }} answers more than 5% of requests with 5xx"
+        - alert: ShotlystDependencyDown
+          expr: kube_pod_status_ready{namespace="shotlyst", condition="true"} == 0
+          for: 2m
+          labels: { severity: warning }
+          annotations:
+            summary: "{{ $labels.pod }} not ready for 2 minutes (see 'dependency unavailable' in Loki)"
+
+---
+# Source: shotlyst/templates/servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: shotlyst
+  labels:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/version: "snapshot"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: shotlyst
+      app.kubernetes.io/instance: shotlyst
+    matchExpressions:
+      - { key: app.kubernetes.io/component, operator: In, values: [identity, sun] }
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+---
+# Source: shotlyst/templates/migrations-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: shotlyst-identity-migrate
+  labels:
+    app.kubernetes.io/name: shotlyst
+    app.kubernetes.io/instance: shotlyst
+    app.kubernetes.io/version: "snapshot"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: identity-migrate
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 4
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: shotlyst
+        app.kubernetes.io/instance: shotlyst
+        app.kubernetes.io/version: "snapshot"
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: identity-migrate
+        
+        shotlyst.io/db: "true"
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: ghcr.io/timkrebs/shotlyst-identity:snapshot
+          imagePullPolicy: IfNotPresent
+          args: ["migrate"]
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: POD_NAMESPACE
+              valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
+            - name: NODE_NAME
+              valueFrom: { fieldRef: { fieldPath: spec.nodeName } }
+            - name: GOMEMLIMIT
+              valueFrom: { resourceFieldRef: { resource: limits.memory } }
+            - name: SHOTLYST_LOG_FORMAT
+              value: json
+            - name: SHOTLYST_LOG_LEVEL
+              value: "info"
+            - name: SHOTLYST_AUTO_MIGRATE
+              value: "false"
+            - name: SHOTLYST_TRUSTED_PROXIES
+              value: "1"
+            - name: SHOTLYST_BASE_URL
+              value: "http://shotlyst.home.local"
+            - name: SHOTLYST_AUTH_PUBLIC_KEY
+              valueFrom: { secretKeyRef: { name: shotlyst-auth, key: publicKey } }
+            - name: SHOTLYST_DATABASE_URL
+              valueFrom: { secretKeyRef: { name: shotlyst-db-identity, key: url } }
+            - name: SHOTLYST_AUTH_PRIVATE_KEY
+              valueFrom: { secretKeyRef: { name: shotlyst-auth, key: privateKey } }
+          resources:
+            limits:
+              memory: 128Mi
+            requests:
+              cpu: 20m
+              memory: 48Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+

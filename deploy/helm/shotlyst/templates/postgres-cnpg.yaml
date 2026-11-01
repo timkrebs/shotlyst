@@ -1,0 +1,100 @@
+{{/*
+One CloudNativePG cluster (docs/02 ADR-2): one database "shotlyst", one
+login role and one schema per DB-backed service, all declared here so a new
+service only needs `db: true` in values. Each role owns only its schema, so
+a service cannot read another service's tables. Requires the CNPG operator
+>= 1.26 (Database.spec.schemas).
+*/}}
+{{- if and .Values.postgres.cnpg.enabled (not .Values.postgres.external.url) }}
+{{- if not (.Capabilities.APIVersions.Has "postgresql.cnpg.io/v1") }}
+{{- fail "postgres.cnpg.enabled=true but the CloudNativePG CRDs are not installed (install the operator, or set postgres.external.url)" }}
+{{- end }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ include "shotlyst.pgCluster" . }}
+  labels: {{- include "shotlyst.labels" . | nindent 4 }}
+spec:
+  instances: {{ .Values.postgres.cnpg.instances }}
+  storage:
+    size: {{ .Values.postgres.cnpg.storage }}
+    {{- with .Values.postgres.cnpg.storageClass }}
+    storageClass: {{ . }}
+    {{- end }}
+  resources:
+    {{- toYaml .Values.postgres.cnpg.resources | nindent 4 }}
+  bootstrap:
+    {{- if .Values.postgres.cnpg.recovery.enabled }}
+    # Restore from the backup archive (README "Restore"). Bootstrap only
+    # applies when the Cluster is created; keep these values set afterwards.
+    recovery:
+      source: origin
+      {{- with .Values.postgres.cnpg.recovery.targetTime }}
+      recoveryTarget: { targetTime: {{ . | quote }} }
+      {{- end }}
+    {{- else }}
+    initdb:
+      database: shotlyst
+      owner: shotlyst
+    {{- end }}
+  {{- if .Values.postgres.cnpg.recovery.enabled }}
+  externalClusters:
+    - name: origin
+      barmanObjectStore:
+        {{- include "shotlyst.barmanStore" (dict "root" . "serverName" (required "postgres.cnpg.recovery.serverName is required" .Values.postgres.cnpg.recovery.serverName)) | nindent 8 }}
+  {{- end }}
+  managed:
+    roles:
+      {{- range $name, $svc := .Values.services }}
+      {{- if $svc.db }}
+      - name: {{ $name }}
+        ensure: present
+        login: true
+        inherit: true
+        passwordSecret:
+          name: {{ include "shotlyst.dbSecret" (dict "root" $ "name" $name) }}
+      {{- end }}
+      {{- end }}
+  {{- if .Values.postgres.cnpg.backup.enabled }}
+  backup:
+    barmanObjectStore:
+      {{- include "shotlyst.barmanStore" (dict "root" . "serverName" (.Values.postgres.cnpg.backup.serverName | default (include "shotlyst.pgCluster" .))) | nindent 6 }}
+    retentionPolicy: {{ .Values.postgres.cnpg.backup.retention | quote }}
+  {{- end }}
+{{- if .Values.postgres.cnpg.backup.enabled }}
+---
+# Base backups; WAL is archived continuously by the Cluster above.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: {{ include "shotlyst.pgCluster" . }}-daily
+  labels: {{- include "shotlyst.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.postgres.cnpg.backup.schedule | quote }}
+  backupOwnerReference: self
+  cluster:
+    name: {{ include "shotlyst.pgCluster" . }}
+{{- end }}
+{{- if gt (len (include "shotlyst.dbUsers" .)) 0 }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: {{ include "shotlyst.pgCluster" . }}-shotlyst
+  labels: {{- include "shotlyst.labels" . | nindent 4 }}
+spec:
+  name: shotlyst
+  owner: shotlyst
+  cluster:
+    name: {{ include "shotlyst.pgCluster" . }}
+  schemas:
+    {{- range $name, $svc := .Values.services }}
+    {{- if $svc.db }}
+    - name: {{ $name }}
+      owner: {{ $name }}
+      ensure: present
+    {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

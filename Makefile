@@ -11,7 +11,7 @@ GO_PKGS   = $(shell go list ./... | grep -v /node_modules/)
 # global install and CI uses the same version.
 SQLC     := go run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
 
-.PHONY: dev test lint gen migrate build docker docker-all helm-lint clean
+.PHONY: dev test lint gen migrate build docker docker-all helm-lint helm-snapshot clean
 
 ## dev: run the whole stack locally with hot reload (http://localhost:8080)
 dev:
@@ -56,10 +56,23 @@ docker:
 docker-all:
 	@for s in $(SERVICES); do $(MAKE) docker SVC=$$s; done
 
-## helm-lint: lint the chart and render it to catch template errors
+CHART     := deploy/helm/shotlyst
+SNAPSHOT  := $(CHART)/ci/snapshot.yaml
+# Render as if the optional CRDs (CNPG, Prometheus Operator) were installed,
+# so the snapshot covers every template.
+HELM_TPL  := helm template shotlyst $(CHART) -n shotlyst -f $(CHART)/ci/test-values.yaml \
+	--api-versions postgresql.cnpg.io/v1 \
+	--api-versions monitoring.coreos.com/v1/ServiceMonitor \
+	--api-versions monitoring.coreos.com/v1/PrometheusRule
+
+## helm-lint: lint the chart and diff the rendered output against the snapshot
 helm-lint:
-	helm lint deploy/helm/shotlyst
-	helm template shotlyst deploy/helm/shotlyst > /dev/null
+	helm lint $(CHART) -f $(CHART)/ci/test-values.yaml
+	$(HELM_TPL) | diff -u $(SNAPSHOT) - || { echo "chart output changed; review and run 'make helm-snapshot'"; exit 1; }
+
+## helm-snapshot: accept the current chart output as the new snapshot
+helm-snapshot:
+	$(HELM_TPL) > $(SNAPSHOT)
 
 clean:
 	rm -rf bin web/dist
