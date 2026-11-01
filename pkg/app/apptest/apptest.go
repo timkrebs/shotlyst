@@ -16,6 +16,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -24,6 +26,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/timkrebs/shotlyst/pkg/app"
 	"github.com/timkrebs/shotlyst/pkg/authx"
@@ -67,7 +70,8 @@ func NewKeys(t testing.TB) Keys {
 // Harness is a service mounted on the standard router.
 type Harness struct {
 	t       testing.TB
-	handler http.Handler
+	handler chi.Router
+	prefix  string
 	keys    Keys
 	// Logs receives every JSON log line the service writes.
 	Logs *bytes.Buffer
@@ -81,7 +85,7 @@ type Harness struct {
 // harness clock: real time shifted by Advance.
 func New[C any](t testing.TB, o app.Options[C], cfg *C, keys Keys, pool *pgxpool.Pool) *Harness {
 	t.Helper()
-	h := &Harness{t: t, keys: keys, Logs: &bytes.Buffer{}}
+	h := &Harness{t: t, keys: keys, prefix: o.Prefix, Logs: &bytes.Buffer{}}
 	pub, err := authx.ParsePublicKey(keys.Public)
 	if err != nil {
 		t.Fatal(err)
@@ -158,6 +162,59 @@ func (h *Harness) DoWith(method, path string, body any, mod func(*http.Request))
 	rec := httptest.NewRecorder()
 	h.handler.ServeHTTP(rec, req)
 	return rec
+}
+
+// AssertRoutesMatchSpec fails the test unless the routes mounted under the
+// service prefix and the operations in the OpenAPI spec at specPath are the
+// same set of (method, path). It keeps api/<service>.yaml — the contract
+// the TS client is generated from — from drifting away from the code.
+func (h *Harness) AssertRoutesMatchSpec(specPath string) {
+	h.t.Helper()
+	raw, err := os.ReadFile(specPath)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	var spec struct {
+		Paths map[string]map[string]any `yaml:"paths"`
+	}
+	if err := yaml.Unmarshal(raw, &spec); err != nil {
+		h.t.Fatalf("parse %s: %v", specPath, err)
+	}
+	documented := map[string]bool{}
+	for path, ops := range spec.Paths {
+		for method := range ops {
+			if method != "parameters" {
+				documented[strings.ToUpper(method)+" "+path] = true
+			}
+		}
+	}
+	mounted := map[string]bool{}
+	err = chi.Walk(h.handler, func(method, route string, _ http.Handler, _ ...func(http.Handler) http.Handler) error {
+		if rel, ok := strings.CutPrefix(route, h.prefix); ok {
+			mounted[method+" "+rel] = true
+		}
+		return nil
+	})
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	for _, d := range diff(mounted, documented) {
+		h.t.Errorf("route %s is mounted but not in %s", d, specPath)
+	}
+	for _, d := range diff(documented, mounted) {
+		h.t.Errorf("operation %s is in %s but not mounted", d, specPath)
+	}
+}
+
+func diff(a, b map[string]bool) []string {
+	var out []string
+	for k := range a {
+		if !b[k] {
+			out = append(out, k)
+		}
+	}
+	sort.Strings(out)
+	return out
 }
 
 // JSON decodes a response body into a generic map, failing the test on

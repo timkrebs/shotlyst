@@ -51,6 +51,10 @@ func register(t *testing.T, h *apptest.Harness, email string) string {
 	return c.Value
 }
 
+func TestRoutesMatchSpec(t *testing.T) {
+	harness(t).AssertRoutesMatchSpec("../../api/identity.yaml")
+}
+
 func TestRegisterAndMe(t *testing.T) {
 	h := harness(t)
 	tok := register(t, h, " Tim@Example.com ")

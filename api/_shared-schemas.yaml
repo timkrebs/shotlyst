@@ -57,6 +57,23 @@ components:
     ProjectStatus:
       type: string
       enum: [planning, shooting, post, done, archived]
-    # Resource schemas (User, Camera, Lens, Project, Beat, Shot, ShootDay,
-    # Location, IdeaCard, SunTimes, SyncRequest, SyncResponse) are to be
-    # added in M1–M4 following docs/03-data-model.md and docs/04-api.md.
+    # Resource schemas live in the spec of the service that owns them
+    # (User in identity.yaml, SunTimes in sun.yaml, Shot in planning.yaml…);
+    # only schemas used by more than one service belong here.
+  responses:
+    Unauthorized:
+      description: Missing, invalid or expired session token.
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    Forbidden:
+      description: >
+        CSRF guard: state-changing requests must send `X-Shotlyst-Client: web`
+        (the generated web client adds it to every request).
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    Validation:
+      description: One or more fields are invalid; see `errors`.
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    TooManyRequests:
+      description: Rate limited; retry after the `Retry-After` seconds.
+      headers:
+        Retry-After: { schema: { type: integer } }
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }

@@ -19,6 +19,10 @@ func harness(t *testing.T) *apptest.Harness {
 
 const munich = Prefix + "/times?lat=48.1374&lon=11.5755&date=2026-06-21&tz=Europe/Berlin"
 
+func TestRoutesMatchSpec(t *testing.T) {
+	harness(t).AssertRoutesMatchSpec("../../api/sun.yaml")
+}
+
 func TestTimesRequiresSession(t *testing.T) {
 	h := harness(t)
 	rec := h.Do(http.MethodGet, munich, nil, "")
