@@ -58,25 +58,41 @@ helm upgrade --install shotlyst deploy/helm/shotlyst -n shotlyst --create-namesp
 
 ## Configuration
 
-| Variable | Default | Description |
-|---|---|---|
 All services read `SHOTLYST_*` env vars via `pkg/config`; only the ones a
-service needs are required for it.
+service needs are required for it. The effective configuration (secrets as
+`***`) is logged on the `starting` line.
 
 | Variable | Default | Description |
 |---|---|---|
+| `SHOTLYST_ADDR` | `:8080` | Listen address |
 | `SHOTLYST_DATABASE_URL` | — | Postgres DSN (db-backed services) |
-| `SHOTLYST_AUTH_PUBLIC_KEY` | — | Ed25519 public key, base64 (all services) |
-| `SHOTLYST_AUTH_PRIVATE_KEY` | — | Ed25519 private key, base64 (identity only) |
+| `SHOTLYST_AUTH_PUBLIC_KEY` | — | Ed25519 public key, base64 (all services, required) |
+| `SHOTLYST_AUTH_PRIVATE_KEY` | — | Ed25519 private key seed, base64 (identity only) |
 | `SHOTLYST_GEAR_URL` / `_SUN_URL` / `_MEDIA_URL` | — | planning's dependencies |
 | `SHOTLYST_PLANNING_URL` | — | export's dependency |
-| `SHOTLYST_LOG_LEVEL` | `info` | `debug` adds SQL timings |
+| `SHOTLYST_LOG_LEVEL` | `info` | `debug` adds SQL query names and timings |
+| `SHOTLYST_LOG_FORMAT` | `text` | `text` or `json` (json in the cluster) |
 | `POD_NAME` / `POD_NAMESPACE` / `NODE_NAME` | — | Downward API; appear on every log line |
-| `SHOTLYST_BASE_URL` | `http://localhost:8080` | Public URL (cookies, links) |
+| `SHOTLYST_BASE_URL` | `http://localhost:8080` | Public URL (cookie `Secure` flag, links) |
+| `SHOTLYST_TRUSTED_PROXIES` | `1` | Reverse-proxy hops in front of the service (ingress / Caddy); the client IP for logs and rate limits is read that many entries from the right of `X-Forwarded-For`. `0` = use the TCP peer. Too low lets clients spoof their IP. |
+| `SHOTLYST_REQUEST_TIMEOUT` | `30s` | Per-request deadline |
+| `SHOTLYST_SHUTDOWN_TIMEOUT` | `15s` | Drain time after SIGTERM |
 | `SHOTLYST_S3_ENDPOINT` / `_BUCKET` / `_ACCESS_KEY` / `_SECRET_KEY` | MinIO dev values | Object storage |
-| `SHOTLYST_AUTO_MIGRATE` | `false` | Run migrations on start |
-| `SHOTLYST_LOG_FORMAT` | `text` | `text` or `json` |
+| `SHOTLYST_AUTO_MIGRATE` | `false` | Run migrations on start (Compose only; the cluster uses a hook Job) |
 | `SHOTLYST_AI_API_KEY` | — | Phase 3 |
+
+### Tests and Podman
+
+Integration tests start Postgres with testcontainers. With Podman instead
+of Docker, disable the reaper container (it expects a Docker `bridge`
+network); `pkg/dbx/dbtest` removes its container itself:
+
+```bash
+export TESTCONTAINERS_RYUK_DISABLED=true
+```
+
+To skip containers entirely, point tests at an existing server with
+`SHOTLYST_TEST_DATABASE_URL=postgres://user:pass@host:5432/postgres`.
 
 ## License
 

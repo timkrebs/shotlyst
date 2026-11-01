@@ -29,7 +29,7 @@ Tasks
 - [x] 0.6 `pkg/dbx`: pgx pool from URL, `search_path` per service schema, goose runner with embedded FS, `Tx(ctx, fn)`, testcontainers helper `dbx/dbtest`.
 - [x] 0.7 `pkg/authx`: Ed25519 keypair gen CLI (`go run ./cmd/keygen`), `Sign(payload)`, `Verify(token)`, cookie read/write, `RequireUser` middleware, `UserID(ctx)`. Tests incl. expiry and tamper.
 - [x] 0.8 `pkg/clientx`: base client (timeouts, retry for idempotent, request-id + bearer propagation, outbound logging/metrics), TTL cache helper. Tests with httptest.
-- [ ] 0.9 `pkg/app`: `Run(Options)` — loads config, builds logger, opens DB if `Migrations != nil`, runs migrations if `AUTO_MIGRATE`, mounts routes, starts server, graceful shutdown on SIGTERM, `migrate` subcommand for the Helm hook Job. This is the **only** thing any `main.go` calls.
+- [x] 0.9 `pkg/app`: `Run(Options)` — loads config, builds logger, opens DB if `Migrations != nil`, runs migrations if `AUTO_MIGRATE`, mounts routes, starts server, graceful shutdown on SIGTERM, `migrate` subcommand for the Helm hook Job. This is the **only** thing any `main.go` calls.
 - [ ] 0.10 `services/sun`: NOAA/Meeus solar calc in `domain`, `GET /times`, 1 h cache, tests against `docs/test-vectors/sun.json`. `cmd/sun/main.go` (≈ 15 lines).
 - [ ] 0.11 `services/identity`: migrations (`identity` schema: users, sessions), register/login/logout/refresh/me, argon2id, rate limit on login/register (in-memory token bucket, fine for one replica). Tests.
 - [ ] 0.12 OpenAPI: `api/sun.yaml`, `api/identity.yaml`; `make gen` produces TS clients.
