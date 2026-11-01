@@ -1,0 +1,90 @@
+# Local development stack. Mirrors the cluster topology:
+# caddy does the same path routing as the Kubernetes ingress, so the SPA
+# talks to one origin (http://localhost:8080) exactly like in production.
+#
+# Services use `air` for hot reload (.air.toml builds ./cmd/$SHOTLYST_SERVICE);
+# a single x-service anchor keeps the definitions DRY — each service only
+# overrides SHOTLYST_SERVICE and its dependency URLs.
+
+x-service: &go-service
+  build:
+    context: .
+    dockerfile: docker/Dockerfile.dev        # golang + air; see docs/02 §7
+  volumes:
+    - .:/src
+  env_file: .env
+  # Shared, non-secret settings live in .env (loaded via env_file) because a
+  # YAML merge would replace the whole `environment` mapping per service.
+  depends_on:
+    postgres: { condition: service_healthy }
+    minio:    { condition: service_started }
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: shotlyst
+      POSTGRES_PASSWORD: shotlyst
+      POSTGRES_DB: shotlyst
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shotlyst"]
+      interval: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports: ["9000:9000", "9001:9001"]
+    volumes: ["miniodata:/data"]
+
+  identity:
+    <<: *go-service
+    environment: { SHOTLYST_SERVICE: identity }
+
+  gear:
+    <<: *go-service
+    environment: { SHOTLYST_SERVICE: gear }
+
+  planning:
+    <<: *go-service
+    environment:
+      SHOTLYST_SERVICE: planning
+      SHOTLYST_GEAR_URL: http://gear:8080
+      SHOTLYST_SUN_URL: http://sun:8080
+      SHOTLYST_MEDIA_URL: http://media:8080
+
+  sun:
+    <<: *go-service
+    environment: { SHOTLYST_SERVICE: sun }
+
+  media:
+    <<: *go-service
+    environment: { SHOTLYST_SERVICE: media }
+
+  export:
+    <<: *go-service
+    environment:
+      SHOTLYST_SERVICE: export
+      SHOTLYST_PLANNING_URL: http://planning:8080
+
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    volumes: ["./web:/app"]
+    command: sh -c "npm ci && npm run dev -- --host"
+    ports: ["5173:5173"]
+
+  router:
+    image: caddy:2-alpine
+    ports: ["8080:8080"]
+    volumes: ["./docker/Caddyfile:/etc/caddy/Caddyfile:ro"]
+    depends_on: [identity, gear, planning, sun, media, export, web]
+
+volumes:
+  pgdata:
+  miniodata:

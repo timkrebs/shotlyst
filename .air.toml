@@ -1,0 +1,14 @@
+# air hot-reload config shared by every service in docker-compose.
+# The service to build comes from the SHOTLYST_SERVICE env var.
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o ./tmp/${SHOTLYST_SERVICE} ./cmd/${SHOTLYST_SERVICE}"
+  bin = "./tmp/${SHOTLYST_SERVICE}"
+  include_ext = ["go", "sql"]
+  exclude_dir = ["web", "tmp", "deploy", "docs", "node_modules"]
+  delay = 500
+
+[log]
+  time = false

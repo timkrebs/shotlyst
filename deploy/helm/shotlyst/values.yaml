@@ -1,0 +1,96 @@
+# Shotlyst umbrella chart. One generic template renders every entry in
+# `services`; add a service here and it gets a Deployment, Service, ingress
+# path, NetworkPolicy allow, migration hook (if db) and ServiceMonitor.
+# See docs/07-deployment.md.
+
+image:
+  registry: ghcr.io/timkrebs/shotlyst   # images are <registry>-<service>:<tag>
+  tag: ""                               # empty → Chart.appVersion
+  pullPolicy: IfNotPresent
+
+services:
+  identity:
+    path: /api/v1/auth
+    db: true
+  gear:
+    path: /api/v1/gear
+    db: true
+  planning:
+    path: /api/v1/plan
+    db: true
+    env:
+      SHOTLYST_GEAR_URL: http://shotlyst-gear:8080
+      SHOTLYST_SUN_URL: http://shotlyst-sun:8080
+      SHOTLYST_MEDIA_URL: http://shotlyst-media:8080
+  sun:
+    path: /api/v1/sun
+    db: false
+  media:
+    path: /api/v1/media
+    db: true
+    s3: true
+  export:
+    path: /api/v1/export
+    db: false
+    env:
+      SHOTLYST_PLANNING_URL: http://shotlyst-planning:8080
+
+web:
+  enabled: true
+  image: ghcr.io/timkrebs/shotlyst-web
+
+replicas: 1   # single node; raise per service via services.<name>.replicas
+
+resources:
+  default:
+    requests: { cpu: 20m, memory: 48Mi }
+    limits:   { memory: 128Mi }
+
+logLevel: info
+
+auth:
+  # Ed25519 keys, base64. Generate with `go run ./cmd/keygen`.
+  # Private key is mounted only into identity; public key into every service.
+  privateKey: ""
+  publicKey: ""
+
+postgres:
+  cnpg:
+    enabled: true
+    instances: 1
+    storage: 5Gi
+    backup:
+      enabled: false
+      destinationPath: s3://backups/shotlyst
+  external:
+    url: ""   # if set, cnpg is ignored and all services use this DSN
+  # one schema + role per db-backed service is created by the init Job
+
+s3:
+  minio:
+    enabled: true
+    storage: 10Gi
+  endpoint: http://shotlyst-minio:9000
+  bucket: shotlyst
+  accessKey: minioadmin
+  secretKey: minioadmin
+
+ingress:
+  enabled: true
+  className: nginx
+  host: shotlyst.home.local
+  tls: false
+  annotations: {}
+
+monitoring:
+  serviceMonitor:
+    enabled: true
+  alerts:
+    enabled: true
+
+networkPolicy:
+  enabled: true
+
+vault:
+  enabled: false   # when true: render ExternalSecrets instead of Secrets
+  path: kv/shotlyst

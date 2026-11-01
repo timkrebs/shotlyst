@@ -1,0 +1,13 @@
+openapi: 3.1.0
+info:
+  title: Shotlyst planning service
+  version: 0.1.0
+  description: >
+    Contract for the planning service, mounted at /api/v1/plan. Paths and
+    payloads are specified in docs/04-api.md; fill this file in the
+    milestone that implements the service and keep it authoritative.
+servers:
+  - url: /api/v1/plan
+paths: {}
+components:
+  schemas: {}

@@ -1,0 +1,39 @@
+openapi: 3.1.0
+info:
+  title: Shotlyst sun service
+  version: 0.1.0
+  description: Stateless sunrise/sunset/golden-hour calculation. Mounted at /api/v1/sun.
+servers:
+  - url: /api/v1/sun
+paths:
+  /times:
+    get:
+      summary: Sun times for a location and date
+      parameters:
+        - { name: lat,  in: query, required: true, schema: { type: number } }
+        - { name: lon,  in: query, required: true, schema: { type: number } }
+        - { name: date, in: query, required: true, schema: { type: string, format: date } }
+        - { name: tz,   in: query, required: true, schema: { type: string, description: IANA zone } }
+      responses:
+        "200":
+          description: Times in the requested zone; null when the event does not occur (polar day/night).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SunTimes" }
+        "422": { description: Validation error, content: { application/problem+json: { schema: { $ref: "./_shared-schemas.yaml#/components/schemas/Problem" } } } }
+components:
+  schemas:
+    SunTimes:
+      type: object
+      properties:
+        sunrise:              { type: [string, "null"], format: date-time }
+        sunset:               { type: [string, "null"], format: date-time }
+        solar_noon:           { type: [string, "null"], format: date-time }
+        civil_dawn:           { type: [string, "null"], format: date-time }
+        civil_dusk:           { type: [string, "null"], format: date-time }
+        golden_morning_start: { type: [string, "null"], format: date-time }
+        golden_morning_end:   { type: [string, "null"], format: date-time }
+        golden_evening_start: { type: [string, "null"], format: date-time }
+        golden_evening_end:   { type: [string, "null"], format: date-time }
+        blue_morning_start:   { type: [string, "null"], format: date-time }
+        blue_evening_end:     { type: [string, "null"], format: date-time }

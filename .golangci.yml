@@ -1,0 +1,33 @@
+# Lint config enforcing the three principles: simple, DRY, documented.
+version: "2"
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - revive        # doc comments on exported symbols (see settings)
+    - dupl          # flags copy-pasted blocks → move them to pkg/
+    - gocyclo       # keep functions simple
+    - misspell
+    - unparam
+    - bodyclose
+    - sqlclosecheck
+    - noctx
+  settings:
+    dupl:
+      threshold: 80
+    gocyclo:
+      min-complexity: 15
+    revive:
+      rules:
+        - name: exported          # every exported symbol needs a doc comment
+          arguments: [checkPrivateReceivers, sayRepetitiveInsteadOfStutters]
+        - name: package-comments  # every package needs a package comment
+        - name: context-as-argument
+        - name: error-strings
+        - name: error-return
+        - name: unexported-return
+  exclusions:
+    paths:
+      - services/.*/store/gen   # sqlc output
+      - web

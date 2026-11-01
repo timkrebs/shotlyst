@@ -1,0 +1,13 @@
+openapi: 3.1.0
+info:
+  title: Shotlyst gear service
+  version: 0.1.0
+  description: >
+    Contract for the gear service, mounted at /api/v1/gear. Paths and
+    payloads are specified in docs/04-api.md; fill this file in the
+    milestone that implements the service and keep it authoritative.
+servers:
+  - url: /api/v1/gear
+paths: {}
+components:
+  schemas: {}

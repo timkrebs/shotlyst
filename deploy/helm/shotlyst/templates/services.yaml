@@ -1,0 +1,83 @@
+{{/*
+One Deployment + Service per entry in .Values.services. This is the only
+place a service workload is defined — never hand-write per-service
+manifests. The planning/export/etc. differences are data (values), not
+templates.
+*/}}
+{{- range $name, $svc := .Values.services }}
+{{- $root := $ }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $root.Release.Name }}-{{ $name }}
+  labels:
+    {{- include "shotlyst.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  replicas: {{ $svc.replicas | default $root.Values.replicas }}
+  selector:
+    matchLabels:
+      {{- include "shotlyst.selector" (dict "Release" $root.Release "component" $name) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "shotlyst.labels" $root | nindent 8 }}
+        app.kubernetes.io/component: {{ $name }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: /metrics
+    spec:
+      securityContext:
+        seccompProfile: { type: RuntimeDefault }
+      terminationGracePeriodSeconds: 20
+      containers:
+        - name: {{ $name }}
+          image: {{ include "shotlyst.image" (dict "root" $root "name" $name) }}
+          imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          ports:
+            - { name: http, containerPort: 8080 }
+          env:
+            {{- include "shotlyst.commonEnv" $root | nindent 12 }}
+            {{- if $svc.db }}
+            - name: SHOTLYST_DATABASE_URL
+              valueFrom: { secretKeyRef: { name: {{ $root.Release.Name }}-db-{{ $name }}, key: url } }
+            {{- end }}
+            {{- if $svc.s3 }}
+            - name: SHOTLYST_S3_ENDPOINT
+              value: {{ $root.Values.s3.endpoint | quote }}
+            - name: SHOTLYST_S3_BUCKET
+              value: {{ $root.Values.s3.bucket | quote }}
+            - name: SHOTLYST_S3_ACCESS_KEY
+              valueFrom: { secretKeyRef: { name: {{ $root.Release.Name }}-s3, key: accessKey } }
+            - name: SHOTLYST_S3_SECRET_KEY
+              valueFrom: { secretKeyRef: { name: {{ $root.Release.Name }}-s3, key: secretKey } }
+            {{- end }}
+            {{- if eq $name "identity" }}
+            - name: SHOTLYST_AUTH_PRIVATE_KEY
+              valueFrom: { secretKeyRef: { name: {{ $root.Release.Name }}-auth, key: privateKey } }
+            {{- end }}
+            {{- range $k, $v := $svc.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          {{- include "shotlyst.probes" $root | nindent 10 }}
+          resources:
+            {{- toYaml ($svc.resources | default $root.Values.resources.default) | nindent 12 }}
+          securityContext:
+            {{- include "shotlyst.securityContext" $root | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $root.Release.Name }}-{{ $name }}
+  labels:
+    {{- include "shotlyst.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  selector:
+    {{- include "shotlyst.selector" (dict "Release" $root.Release "component" $name) | nindent 4 }}
+  ports:
+    - { name: http, port: 8080, targetPort: http }
+{{- end }}
