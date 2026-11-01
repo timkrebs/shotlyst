@@ -1,0 +1,54 @@
+/*
+ * index.css — Tailwind entry and design tokens.
+ *
+ * Direction (docs/05): a field notebook, not a SaaS dashboard. Warm paper
+ * and ink, hairline rules, small uppercase labels, monospace numerals. The
+ * accent is reserved for priority "must" and the active shot in shoot mode,
+ * so nothing in the shell uses it. Colours are CSS variables switched by
+ * the `dark` class (app/theme.ts), so components never need `dark:` pairs.
+ */
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --bg: #f4f1ea;
+  --surface: #fbf9f4;
+  --fg: #1d1c19;
+  --muted: #6d685e;
+  --line: #d8d2c4;
+  --danger: #a8321f;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #121210;
+  --surface: #1a1916;
+  --fg: #ebe7dd;
+  --muted: #9c968a;
+  --line: #34312b;
+  --danger: #f0846f;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-danger: var(--danger);
+  --color-accent: #e2571b;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+@layer base {
+  html {
+    @apply bg-bg text-fg font-sans antialiased;
+    font-feature-settings: "tnum";
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-fg;
+  }
+}

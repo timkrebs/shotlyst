@@ -63,6 +63,7 @@ services:
     # from the host's (native packages differ per OS).
     volumes: ["./web:/app", "/app/node_modules"]
     command: sh -c "npm ci && npm run dev -- --host"
+    environment: { VITE_POLL: "1" }
     ports: ["5173:5173"]
 
   router:

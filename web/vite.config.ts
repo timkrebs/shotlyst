@@ -7,10 +7,18 @@
  */
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
-  plugins: [react()],
-  server: { host: true, port: 5173, strictPort: true },
+  plugins: [react(), tailwindcss()],
+  server: {
+    host: true,
+    port: 5173,
+    strictPort: true,
+    // Compose sets VITE_POLL: bind mounts from macOS into the container VM
+    // deliver no file events (same reason .air.toml polls).
+    watch: process.env.VITE_POLL ? { usePolling: true, interval: 500 } : {},
+  },
   test: {
     environment: "jsdom",
     globals: true,
