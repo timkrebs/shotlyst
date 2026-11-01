@@ -28,8 +28,9 @@ linters:
         - name: error-return
         - name: unexported-return
   exclusions:
+    # sqlc output (services/*/store/*.sql.go, db.go, models.go) carries a
+    # "Code generated" header and is skipped by golangci-lint automatically.
     paths:
-      - services/.*/store/gen   # sqlc output
       - web
     rules:
       # Tests build requests from scratch; threading a context through every

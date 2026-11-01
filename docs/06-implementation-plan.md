@@ -31,7 +31,7 @@ Tasks
 - [x] 0.8 `pkg/clientx`: base client (timeouts, retry for idempotent, request-id + bearer propagation, outbound logging/metrics), TTL cache helper. Tests with httptest.
 - [x] 0.9 `pkg/app`: `Run(Options)` — loads config, builds logger, opens DB if `Migrations != nil`, runs migrations if `AUTO_MIGRATE`, mounts routes, starts server, graceful shutdown on SIGTERM, `migrate` subcommand for the Helm hook Job. This is the **only** thing any `main.go` calls.
 - [x] 0.10 `services/sun`: NOAA/Meeus solar calc in `domain`, `GET /times`, 1 h cache, tests against `docs/test-vectors/sun.json`. `cmd/sun/main.go` (≈ 15 lines).
-- [ ] 0.11 `services/identity`: migrations (`identity` schema: users, sessions), register/login/logout/refresh/me, argon2id, rate limit on login/register (in-memory token bucket, fine for one replica). Tests.
+- [x] 0.11 `services/identity`: migrations (`identity` schema: users, sessions), register/login/logout/refresh/me, argon2id, rate limit on login/register (in-memory token bucket, fine for one replica). Tests.
 - [ ] 0.12 OpenAPI: `api/sun.yaml`, `api/identity.yaml`; `make gen` produces TS clients.
 - [ ] 0.13 `Dockerfile` (generic, `ARG SERVICE`, distroless, non-root, `-ldflags "-X main.version=…"`), `docker-compose.yml` (postgres, minio, caddy router, sun, identity, web dev), `.env.example`.
 - [ ] 0.14 Helm chart per `docs/07-deployment.md`: generic service template, web, ingress, secrets, CNPG cluster + roles/schemas, MinIO, migration hook Job, ServiceMonitor, NetworkPolicy. `helm lint` + `helm template` snapshot test in CI.

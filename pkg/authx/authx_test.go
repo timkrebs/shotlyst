@@ -61,6 +61,9 @@ func TestVerifyExpiry(t *testing.T) {
 	if _, err := v.Verify(tok); !errors.Is(err, ErrExpired) {
 		t.Fatalf("err = %v, want ErrExpired", err)
 	}
+	if _, err := v.VerifyForRefresh(tok); err != nil {
+		t.Fatalf("refresh must accept an expired but valid token: %v", err)
+	}
 }
 
 func TestVerifyRejectsTampering(t *testing.T) {
@@ -88,6 +91,9 @@ func TestVerifyRejectsTampering(t *testing.T) {
 	} {
 		if _, err := v.Verify(bad); !errors.Is(err, ErrInvalidToken) {
 			t.Errorf("%s: err = %v, want ErrInvalidToken", name, err)
+		}
+		if _, err := v.VerifyForRefresh(bad); !errors.Is(err, ErrInvalidToken) {
+			t.Errorf("%s (refresh): err = %v, want ErrInvalidToken", name, err)
 		}
 	}
 }

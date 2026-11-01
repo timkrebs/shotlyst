@@ -7,6 +7,9 @@ REGISTRY ?= ghcr.io/timkrebs/shotlyst
 SVC      ?= planning
 # web/node_modules can contain Go packages; keep them out of test runs.
 GO_PKGS   = $(shell go list ./... | grep -v /node_modules/)
+# Pinned code generator, run through the Go toolchain so nobody needs a
+# global install and CI uses the same version.
+SQLC     := go run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
 
 .PHONY: dev test lint gen migrate build docker docker-all helm-lint clean
 
@@ -15,8 +18,10 @@ dev:
 	docker compose up --build
 
 ## test: Go + web unit/integration tests (Postgres/MinIO via testcontainers)
+# The testcontainers reaper is disabled because it fails on Podman; dbtest
+# terminates its own container, so nothing leaks on Docker either.
 test:
-	go test -count=1 $(GO_PKGS)
+	TESTCONTAINERS_RYUK_DISABLED=true go test -count=1 $(GO_PKGS)
 	cd web && npm test -- --run
 
 ## lint: static checks incl. duplicated-code and doc-comment rules
@@ -27,7 +32,7 @@ lint:
 ## gen: sqlc for every service + OpenAPI TypeScript clients
 gen:
 	@for s in $(SERVICES); do \
-		if [ -f services/$$s/sqlc.yaml ]; then (cd services/$$s && sqlc generate); fi; \
+		if [ -f services/$$s/sqlc.yaml ]; then (cd services/$$s && $(SQLC) generate) || exit 1; fi; \
 	done
 	cd web && npm run gen:api
 

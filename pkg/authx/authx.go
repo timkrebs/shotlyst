@@ -80,6 +80,21 @@ func NewVerifier(key ed25519.PublicKey, now func() time.Time) *Verifier {
 // Verify returns the claims of a well-formed, correctly signed, unexpired
 // token.
 func (v *Verifier) Verify(token string) (Claims, error) {
+	c, err := v.VerifyForRefresh(token)
+	if err != nil {
+		return Claims{}, err
+	}
+	if v.now().Unix() >= c.ExpiresAt {
+		return Claims{}, ErrExpired
+	}
+	return c, nil
+}
+
+// VerifyForRefresh checks format and signature but not expiry. Only
+// identity's /refresh and /logout use it: an expired token may be exchanged
+// for a new one while its server-side session is still live, which is what
+// keeps a user logged in across days without long-lived tokens.
+func (v *Verifier) VerifyForRefresh(token string) (Claims, error) {
 	p, sig, ok := strings.Cut(token, ".")
 	if !ok {
 		return Claims{}, ErrInvalidToken
@@ -97,9 +112,6 @@ func (v *Verifier) Verify(token string) (Claims, error) {
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&c); err != nil || c.UserID == uuid.Nil || c.SessionID == uuid.Nil {
 		return Claims{}, ErrInvalidToken
-	}
-	if v.now().Unix() >= c.ExpiresAt {
-		return Claims{}, ErrExpired
 	}
 	return c, nil
 }

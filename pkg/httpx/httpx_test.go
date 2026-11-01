@@ -123,6 +123,16 @@ func TestDecodeAndValidationProblems(t *testing.T) {
 	}
 }
 
+func TestProblemFieldsSorted(t *testing.T) {
+	rec := httptest.NewRecorder()
+	ProblemFields(rec, httptest.NewRequest(http.MethodPost, "/", nil), map[string]string{"z": "bad", "a": "worse"})
+	p := problemOf(t, rec)
+	errs := p["errors"].([]any)
+	if rec.Code != 422 || errs[0].(map[string]any)["field"] != "a" || errs[1].(map[string]any)["field"] != "z" {
+		t.Fatalf("got %d %v", rec.Code, p)
+	}
+}
+
 func TestPathUUIDAndNotFound(t *testing.T) {
 	h := newTestRouter(t, &bytes.Buffer{})
 	if rec := do(h, http.MethodGet, "/api/v1/test/items/not-a-uuid", ""); rec.Code != 400 {

@@ -3,6 +3,7 @@ package httpx
 import (
 	"errors"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -76,6 +77,21 @@ func ProblemUnprocessable(w http.ResponseWriter, r *http.Request, field, message
 func ProblemValidation(w http.ResponseWriter, r *http.Request, errs []FieldError) {
 	WriteProblem(w, r, Problem{Status: http.StatusUnprocessableEntity, Type: "validation",
 		Detail: "request validation failed", Errors: errs})
+}
+
+// ProblemFields reports a field → message map (as returned by domain
+// validators) as a 422, sorted by field so responses are deterministic.
+func ProblemFields(w http.ResponseWriter, r *http.Request, problems map[string]string) {
+	fields := make([]string, 0, len(problems))
+	for f := range problems {
+		fields = append(fields, f)
+	}
+	sort.Strings(fields)
+	errs := make([]FieldError, len(fields))
+	for i, f := range fields {
+		errs[i] = FieldError{Field: f, Message: problems[f]}
+	}
+	ProblemValidation(w, r, errs)
 }
 
 // ProblemTooManyRequests tells the client when to retry (429).

@@ -1,0 +1,22 @@
+# sqlc config for identity: queries/*.sql → store/*.go (committed).
+# Run via `make gen` (pinned sqlc version, no global install needed).
+version: "2"
+sql:
+  - engine: postgresql
+    schema: migrations
+    queries: queries
+    gen:
+      go:
+        package: store
+        out: store
+        sql_package: pgx/v5
+        overrides:
+          - db_type: uuid
+            go_type: github.com/google/uuid.UUID
+          - db_type: timestamptz
+            go_type: time.Time
+          - db_type: text
+            nullable: true
+            go_type:
+              type: string
+              pointer: true

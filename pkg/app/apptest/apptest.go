@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -70,23 +71,26 @@ type Harness struct {
 	keys    Keys
 	// Logs receives every JSON log line the service writes.
 	Logs *bytes.Buffer
+
+	mu     sync.Mutex
+	offset time.Duration
 }
 
 // New mounts o.Routes under o.Prefix with cfg and pool (nil when the
-// service is stateless). The clock is real; services that need a fixed
-// clock take it from their own config.
+// service is stateless). The service and the token verifier share the
+// harness clock: real time shifted by Advance.
 func New[C any](t testing.TB, o app.Options[C], cfg *C, keys Keys, pool *pgxpool.Pool) *Harness {
 	t.Helper()
+	h := &Harness{t: t, keys: keys, Logs: &bytes.Buffer{}}
 	pub, err := authx.ParsePublicKey(keys.Public)
 	if err != nil {
 		t.Fatal(err)
 	}
-	logs := &bytes.Buffer{}
-	log := slog.New(slog.NewJSONHandler(logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	log := slog.New(slog.NewJSONHandler(h.Logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	reg := metrics.New(o.Name)
 	deps := app.Deps[C]{
-		Name: o.Name, Log: log, DB: pool, Auth: authx.NewVerifier(pub, time.Now), Metrics: reg,
-		Base: app.Base{BaseURL: "http://localhost:8080"}, Config: cfg, Now: time.Now,
+		Name: o.Name, Log: log, DB: pool, Auth: authx.NewVerifier(pub, h.Now), Metrics: reg,
+		Base: app.Base{BaseURL: "http://localhost:8080", AuthPublicKey: keys.Public}, Config: cfg, Now: h.Now,
 	}
 	r := httpx.NewRouter(httpx.RouterOptions{Logger: log, Metrics: reg})
 	var routesErr error
@@ -94,13 +98,28 @@ func New[C any](t testing.TB, o app.Options[C], cfg *C, keys Keys, pool *pgxpool
 	if routesErr != nil {
 		t.Fatalf("apptest: routes: %v", routesErr)
 	}
-	return &Harness{t: t, handler: r, keys: keys, Logs: logs}
+	h.handler = r
+	return h
+}
+
+// Now is the harness clock.
+func (h *Harness) Now() time.Time {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return time.Now().Add(h.offset)
+}
+
+// Advance moves the harness clock forward, e.g. past a token's expiry.
+func (h *Harness) Advance(d time.Duration) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.offset += d
 }
 
 // Token mints a valid session token for userID (random session, 1 h).
 func (h *Harness) Token(userID uuid.UUID) string {
 	h.t.Helper()
-	tok, err := h.keys.Signer.Sign(authx.Claims{UserID: userID, SessionID: uuid.New(), ExpiresAt: time.Now().Add(time.Hour).Unix()})
+	tok, err := h.keys.Signer.Sign(authx.Claims{UserID: userID, SessionID: uuid.New(), ExpiresAt: h.Now().Add(time.Hour).Unix()})
 	if err != nil {
 		h.t.Fatal(err)
 	}
@@ -110,6 +129,17 @@ func (h *Harness) Token(userID uuid.UUID) string {
 // Do sends a request the way the SPA does: JSON body, the CSRF header on
 // writes, and token (if non-empty) as a Bearer header.
 func (h *Harness) Do(method, path string, body any, token string) *httptest.ResponseRecorder {
+	h.t.Helper()
+	return h.DoWith(method, path, body, func(r *http.Request) {
+		if token != "" {
+			r.Header.Set("Authorization", "Bearer "+token)
+		}
+	})
+}
+
+// DoWith is Do with a hook to adjust the request (cookies, missing CSRF
+// header, client address).
+func (h *Harness) DoWith(method, path string, body any, mod func(*http.Request)) *httptest.ResponseRecorder {
 	h.t.Helper()
 	var rd io.Reader
 	if body != nil {
@@ -124,9 +154,7 @@ func (h *Harness) Do(method, path string, body any, token string) *httptest.Resp
 	if method != http.MethodGet {
 		req.Header.Set(httpx.HeaderClient, "web")
 	}
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
+	mod(req)
 	rec := httptest.NewRecorder()
 	h.handler.ServeHTTP(rec, req)
 	return rec
