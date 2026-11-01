@@ -120,3 +120,14 @@ the cluster (true only in Compose).
 - NetworkPolicy default deny with explicit allows.
 - Images from distroless base; one process per container.
 - PodDisruptionBudget skipped on single node (would block drains).
+
+## 7. Open questions
+
+- **S3 implementation.** The upstream `minio/minio` image could not be
+  pulled from Docker Hub or quay.io during M0 (MinIO stopped publishing
+  free community images). Until this is decided, Compose runs MinIO only
+  under the `media` profile (`docker compose --profile media up`) and the
+  chart ships with `s3.minio.enabled: false`. Candidates: a pinned
+  community MinIO build, Garage, SeaweedFS, or an S3 service outside the
+  cluster. The services only see `SHOTLYST_S3_*`, so any S3-compatible store
+  works. Needs a decision before M1 (media).

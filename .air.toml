@@ -9,6 +9,10 @@ tmp_dir = "tmp"
   include_ext = ["go", "sql"]
   exclude_dir = ["web", "tmp", "deploy", "docs", "node_modules"]
   delay = 500
+  # Bind mounts from a macOS host into the Podman/Docker VM do not deliver
+  # inotify events, so watch by polling instead.
+  poll = true
+  poll_interval = 1000
 
 [log]
   time = false

@@ -4,7 +4,8 @@
 #
 # Services use `air` for hot reload (.air.toml builds ./cmd/$SHOTLYST_SERVICE);
 # a single x-service anchor keeps the definitions DRY — each service only
-# overrides SHOTLYST_SERVICE and its dependency URLs.
+# overrides SHOTLYST_SERVICE and its dependency URLs. A new service is one
+# entry here (plus Helm values and the CI matrix).
 
 x-service: &go-service
   build:
@@ -12,12 +13,13 @@ x-service: &go-service
     dockerfile: docker/Dockerfile.dev        # golang + air; see docs/02 §7
   volumes:
     - .:/src
+    - gomod:/go/pkg/mod                      # module + build caches survive restarts
+    - gocache:/root/.cache/go-build
   env_file: .env
   # Shared, non-secret settings live in .env (loaded via env_file) because a
   # YAML merge would replace the whole `environment` mapping per service.
   depends_on:
     postgres: { condition: service_healthy }
-    minio:    { condition: service_started }
 
 services:
   postgres:
@@ -33,7 +35,11 @@ services:
       interval: 3s
       retries: 10
 
+  # Object storage for media (M1). Behind a profile because MinIO no longer
+  # publishes free images (docker.io/minio/minio and quay.io are denied);
+  # TODO(spec): pick the S3 implementation — see docs/07 open questions.
   minio:
+    profiles: [media]
     image: minio/minio
     command: server /data --console-address ":9001"
     environment:
@@ -46,36 +52,16 @@ services:
     <<: *go-service
     environment: { SHOTLYST_SERVICE: identity }
 
-  gear:
-    <<: *go-service
-    environment: { SHOTLYST_SERVICE: gear }
-
-  planning:
-    <<: *go-service
-    environment:
-      SHOTLYST_SERVICE: planning
-      SHOTLYST_GEAR_URL: http://gear:8080
-      SHOTLYST_SUN_URL: http://sun:8080
-      SHOTLYST_MEDIA_URL: http://media:8080
-
   sun:
     <<: *go-service
     environment: { SHOTLYST_SERVICE: sun }
 
-  media:
-    <<: *go-service
-    environment: { SHOTLYST_SERVICE: media }
-
-  export:
-    <<: *go-service
-    environment:
-      SHOTLYST_SERVICE: export
-      SHOTLYST_PLANNING_URL: http://planning:8080
-
   web:
     image: node:22-alpine
     working_dir: /app
-    volumes: ["./web:/app"]
+    # The anonymous volume keeps the container's Linux node_modules apart
+    # from the host's (native packages differ per OS).
+    volumes: ["./web:/app", "/app/node_modules"]
     command: sh -c "npm ci && npm run dev -- --host"
     ports: ["5173:5173"]
 
@@ -83,8 +69,10 @@ services:
     image: caddy:2-alpine
     ports: ["8080:8080"]
     volumes: ["./docker/Caddyfile:/etc/caddy/Caddyfile:ro"]
-    depends_on: [identity, gear, planning, sun, media, export, web]
+    depends_on: [identity, sun, web]
 
 volumes:
   pgdata:
   miniodata:
+  gomod:
+  gocache:

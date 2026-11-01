@@ -1,6 +1,6 @@
 # Dev image for docker-compose: Go toolchain + air hot reload.
 # Not used in production (see /Dockerfile).
-FROM golang:1.23-alpine
+FROM golang:1.26-alpine
 RUN go install github.com/air-verse/air@latest
 WORKDIR /src
 # .air.toml (repo root) builds ./cmd/$SHOTLYST_SERVICE and restarts on change.
