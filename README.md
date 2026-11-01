@@ -71,7 +71,7 @@ service needs are required for it. The effective configuration (secrets as
 | `SHOTLYST_GEAR_URL` / `_SUN_URL` / `_MEDIA_URL` | — | planning's dependencies |
 | `SHOTLYST_PLANNING_URL` | — | export's dependency |
 | `SHOTLYST_LOG_LEVEL` | `info` | `debug` adds SQL query names and timings |
-| `SHOTLYST_LOG_FORMAT` | `text` | `text` or `json` (json in the cluster) |
+| `SHOTLYST_LOG_FORMAT` | `json` | `json` (docs/08 contract) or `text` for reading locally (`.env.example` sets `text`) |
 | `POD_NAME` / `POD_NAMESPACE` / `NODE_NAME` | — | Downward API; appear on every log line |
 | `SHOTLYST_BASE_URL` | `http://localhost:8080` | Public URL (cookie `Secure` flag, links) |
 | `SHOTLYST_TRUSTED_PROXIES` | `1` | Reverse-proxy hops in front of the service (ingress / Caddy); the client IP for logs and rate limits is read that many entries from the right of `X-Forwarded-For`. `0` = use the TCP peer. Too low lets clients spoof their IP. |

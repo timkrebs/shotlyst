@@ -44,7 +44,7 @@ type Base struct {
 	Addr            string        `env:"ADDR" default:":8080"`
 	BaseURL         string        `env:"BASE_URL" default:"http://localhost:8080"`
 	LogLevel        string        `env:"LOG_LEVEL" default:"info"`
-	LogFormat       string        `env:"LOG_FORMAT" default:"text"`
+	LogFormat       string        `env:"LOG_FORMAT" default:"json"`
 	DatabaseURL     string        `env:"DATABASE_URL" secret:"true"`
 	AutoMigrate     bool          `env:"AUTO_MIGRATE" default:"false"`
 	AuthPublicKey   string        `env:"AUTH_PUBLIC_KEY" required:"true"`
