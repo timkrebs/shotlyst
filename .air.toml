@@ -13,6 +13,12 @@ tmp_dir = "tmp"
   # inotify events, so watch by polling instead.
   poll = true
   poll_interval = 1000
+  # On reload, stop the old process with SIGINT and let it drain (like
+  # SIGTERM in a pod), so "shutting down"/"stopped" show up locally too.
+  # Stopping the container kills air's child without a drain; the
+  # production image runs the binary as PID 1 and drains on SIGTERM.
+  send_interrupt = true
+  kill_delay = "5s"
 
 [log]
   time = false
