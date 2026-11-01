@@ -20,12 +20,13 @@ import (
 var version = "dev"
 
 func main() {
-	app.Run(app.Options{
+	app.Run(app.Options[planning.Config]{
 		Name:       "planning",
 		Version:    version,
+		Prefix:     planning.Prefix,       // "/api/v1/plan"; routes are mounted under it
 		Schema:     "planning",            // Postgres schema this service owns
 		Migrations: planning.Migrations,   // embedded goose files
-		Routes:     planning.Routes,       // func(r chi.Router, deps app.Deps)
+		Routes:     planning.Routes,       // func(r chi.Router, d app.Deps[planning.Config]) error
 	})
 }
 ```
@@ -137,7 +138,7 @@ func (s *snapshotBuilder) cameraFor(ctx context.Context, id *uuid.UUID) (*client
 ## 6. Log line examples (what Loki will show)
 
 ```json
-{"time":"2026-11-01T10:12:00.123Z","level":"INFO","msg":"request completed","service":"planning","version":"0.1.0+a1b2c3d","pod":"shotlyst-planning-7d9f-abcde","namespace":"shotlyst","node":"k8s-cp-01","request_id":"01JD…","user_id":"6f2c…","method":"PUT","path":"/beats/{id}/shots/order","status":204,"duration_ms":12}
+{"time":"2026-11-01T10:12:00.123Z","level":"INFO","msg":"request completed","service":"planning","version":"0.1.0+a1b2c3d","pod":"shotlyst-planning-7d9f-abcde","namespace":"shotlyst","node":"k8s-cp-01","request_id":"01JD…","user_id":"6f2c…","method":"PUT","path":"/api/v1/plan/beats/{id}/shots/order","status":204,"duration_ms":12}
 {"time":"…","level":"WARN","msg":"dependency unavailable","service":"planning","pod":"…","request_id":"01JD…","dependency":"gear","error":"dial tcp: connection refused","attempt":2}
 {"time":"…","level":"ERROR","msg":"panic recovered","service":"media","pod":"…","request_id":"01JE…","error":"runtime error: index out of range","stack":"goroutine 1 [running]:\n…"}
 ```

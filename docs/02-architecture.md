@@ -49,7 +49,13 @@ verifies the session token itself via the shared `pkg/authx` (stateless,
 Ed25519-signed). That removes a hop and a component while staying DRY.
 
 Each API path is prefixed with its service name (`/api/v1/plan/projects`),
-so ingress rules are plain prefix matches — no regex, no overlaps.
+so ingress rules are plain prefix matches — no regex, no overlaps. The
+ingress does **not** strip the prefix (a `Prefix` path rule never does, and
+stripping needs controller-specific annotations); every service mounts its
+API under its own prefix (`app.Options.Prefix`), so the same URL works via
+the ingress, via Caddy in Compose (`handle`, not `handle_path`) and for
+service-to-service calls (`http://shotlyst-gear:8080/api/v1/gear/...`).
+Logs and metrics therefore show the full route pattern.
 
 ## 3. Repository layout (single Go module, DRY by construction)
 
@@ -99,7 +105,7 @@ shotlyst/
 ```
 
 Rules that keep it DRY:
-- A `main.go` may only call `app.Run(app.Options{Name: "planning", Routes: planning.Routes, Migrations: planning.Migrations})`. No wiring logic in `main`.
+- A `main.go` may only call `app.Run(app.Options[planning.Config]{Name: "planning", Prefix: planning.Prefix, Routes: planning.Routes, Migrations: planning.Migrations})`. `Options` is generic over the service's own config struct, which `pkg/app` loads and logs (redacted) alongside the shared settings. No wiring logic in `main`.
 - Middleware, logging, errors, auth, DB setup, metrics and health endpoints exist **once** in `pkg/`. Services never reimplement them.
 - Service-to-service clients live in `pkg/clientx` so the calling convention (timeouts, retries, headers) is identical everywhere.
 - One Dockerfile with `ARG SERVICE`; one Helm template rendered N times from `values.services`.

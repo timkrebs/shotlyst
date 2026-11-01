@@ -1,5 +1,5 @@
 {
-  "_comment": "Generated with astral (NOAA-based). Tolerance for implementations: ±120 s. null = event does not occur that day (polar day/night). Golden hour: sun elevation -4° to +6°; blue hour: -6° to -4°.",
+  "_comment": "Generated with astral (NOAA-based). Tolerance for implementations: ±120 s. null = event does not occur that day (polar day/night). Golden hour: sun elevation -4° to +6°; blue hour: -6° to -4°. All times belong to the requested local date: astral resolves golden/blue hour on the UTC date, which put sydney_spring's morning values on the next day; those three were regenerated with astral for the correct day.",
   "cases": [
     {
       "name": "munich_summer",
@@ -104,11 +104,11 @@
       "civil_dawn": "2026-10-10T05:55:13+11:00",
       "civil_dusk": "2026-10-10T19:29:55+11:00",
       "solar_noon": "2026-10-10T12:42:17+11:00",
-      "golden_morning_start": "2026-10-11T06:03:34+11:00",
-      "golden_morning_end": "2026-10-11T06:51:53+11:00",
+      "golden_morning_start": "2026-10-10T06:04:54+11:00",
+      "golden_morning_end": "2026-10-10T06:53:10+11:00",
       "golden_evening_start": "2026-10-10T18:31:50+11:00",
       "golden_evening_end": "2026-10-10T19:20:12+11:00",
-      "blue_morning_start": "2026-10-11T05:53:52+11:00",
+      "blue_morning_start": "2026-10-10T05:55:13+11:00",
       "blue_evening_end": "2026-10-10T19:29:55+11:00"
     }
   ]

@@ -5,6 +5,8 @@ SERVICES := identity gear planning sun media export
 VERSION  ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 REGISTRY ?= ghcr.io/timkrebs/shotlyst
 SVC      ?= planning
+# web/node_modules can contain Go packages; keep them out of test runs.
+GO_PKGS   = $(shell go list ./... | grep -v /node_modules/)
 
 .PHONY: dev test lint gen migrate build docker docker-all helm-lint clean
 
@@ -14,7 +16,7 @@ dev:
 
 ## test: Go + web unit/integration tests (Postgres/MinIO via testcontainers)
 test:
-	go test ./... -count=1
+	go test -count=1 $(GO_PKGS)
 	cd web && npm test -- --run
 
 ## lint: static checks incl. duplicated-code and doc-comment rules
