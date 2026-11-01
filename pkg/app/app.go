@@ -202,7 +202,7 @@ func serve[C any](ctx context.Context, o Options[C], b Base, cfg *C, log *slog.L
 	router := httpx.NewRouter(httpx.RouterOptions{Logger: log, Metrics: reg, Ready: checks,
 		Timeout: b.RequestTimeout, TrustedProxies: b.TrustedProxies})
 	var routesErr error
-	router.Route(o.Prefix, func(r chi.Router) { routesErr = o.Routes(r, deps) })
+	httpx.MountAPI(router, o.Prefix, func(r chi.Router) { routesErr = o.Routes(r, deps) })
 	if routesErr != nil {
 		return fmt.Errorf("mount routes: %w", routesErr)
 	}

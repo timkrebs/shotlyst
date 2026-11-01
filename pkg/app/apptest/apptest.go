@@ -98,7 +98,7 @@ func New[C any](t testing.TB, o app.Options[C], cfg *C, keys Keys, pool *pgxpool
 	}
 	r := httpx.NewRouter(httpx.RouterOptions{Logger: log, Metrics: reg})
 	var routesErr error
-	r.Route(o.Prefix, func(r chi.Router) { routesErr = o.Routes(r, deps) })
+	httpx.MountAPI(r, o.Prefix, func(r chi.Router) { routesErr = o.Routes(r, deps) })
 	if routesErr != nil {
 		t.Fatalf("apptest: routes: %v", routesErr)
 	}

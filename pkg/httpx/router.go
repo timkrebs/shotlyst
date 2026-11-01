@@ -47,10 +47,10 @@ type Check struct {
 }
 
 // NewRouter returns a chi router with the standard stack applied in this
-// order: client IP, metrics, logging + panic recovery, CSRF header check,
-// request timeout. Metrics sits outside logx so a recovered panic is
-// still counted as a 500. Health and metrics endpoints are mounted at the
-// root; the caller mounts its API under its ingress prefix.
+// order: client IP, metrics, logging + panic recovery, request timeout.
+// Metrics sits outside logx so a recovered panic is still counted as a 500.
+// Health and metrics endpoints are mounted at the root; the API is mounted
+// with MountAPI (which adds the CSRF check).
 func NewRouter(o RouterOptions) chi.Router {
 	if o.Timeout == 0 {
 		o.Timeout = 30 * time.Second
@@ -60,7 +60,7 @@ func NewRouter(o RouterOptions) chi.Router {
 		clientIP = middleware.ClientIPFromXFFTrustedProxies(o.TrustedProxies)
 	}
 	r := chi.NewRouter()
-	r.Use(clientIP, o.Metrics.Middleware, logx.Middleware(o.Logger), CSRF, middleware.Timeout(o.Timeout))
+	r.Use(clientIP, o.Metrics.Middleware, logx.Middleware(o.Logger), middleware.Timeout(o.Timeout))
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) { ProblemNotFound(w, r) })
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		WriteProblem(w, r, Problem{Status: http.StatusMethodNotAllowed, Type: "method-not-allowed"})
@@ -71,6 +71,18 @@ func NewRouter(o RouterOptions) chi.Router {
 	r.Get("/readyz", newReadiness(o.Ready).ServeHTTP)
 	r.Handle("/metrics", o.Metrics.Handler())
 	return r
+}
+
+// MountAPI mounts a service's routes under its ingress prefix behind the
+// CSRF check. The check is attached inside a Group so it runs after
+// routing: a rejected request is still logged with its route pattern.
+func MountAPI(r chi.Router, prefix string, routes func(chi.Router)) {
+	r.Route(prefix, func(r chi.Router) {
+		r.Group(func(r chi.Router) {
+			r.Use(CSRF)
+			routes(r)
+		})
+	})
 }
 
 // CSRF rejects state-changing requests that lack HeaderClient: web.

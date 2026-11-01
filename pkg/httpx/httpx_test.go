@@ -29,7 +29,7 @@ func newTestRouter(t *testing.T, logs *bytes.Buffer, checks ...Check) http.Handl
 		Metrics: metrics.New("test"),
 		Ready:   checks,
 	})
-	r.Route("/api/v1/test", func(r chi.Router) {
+	MountAPI(r, "/api/v1/test", func(r chi.Router) {
 		r.Get("/items/{id}", func(w http.ResponseWriter, r *http.Request) {
 			id, err := PathUUID(r, "id")
 			if err != nil {
@@ -83,10 +83,14 @@ func problemOf(t *testing.T, rec *httptest.ResponseRecorder) map[string]any {
 }
 
 func TestCSRFHeaderRequiredForWrites(t *testing.T) {
-	h := newTestRouter(t, &bytes.Buffer{})
+	var logs bytes.Buffer
+	h := newTestRouter(t, &logs)
 	rec := do(h, http.MethodPost, "/api/v1/test/items", `{"name":"a"}`)
 	if rec.Code != http.StatusForbidden || problemOf(t, rec)["type"] != "/problems/csrf" {
 		t.Fatalf("without header: %d %s", rec.Code, rec.Body)
+	}
+	if !strings.Contains(logs.String(), `"path":"/api/v1/test/items"`) {
+		t.Errorf("csrf rejection logged without route pattern: %s", logs.String())
 	}
 	rec = do(h, http.MethodPost, "/api/v1/test/items", `{"name":"a"}`, HeaderClient, "web")
 	if rec.Code != http.StatusCreated {
