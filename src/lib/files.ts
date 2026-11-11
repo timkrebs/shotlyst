@@ -63,3 +63,8 @@ export function initials(name: string): string {
   const last = parts.length > 1 ? (parts[parts.length - 1][0] ?? "") : "";
   return (first + last).toUpperCase();
 }
+
+// Where the small preview of an image lives, next to the original.
+export function thumbnailPath(path: string): string {
+  return path.replace(/\.[a-z0-9]+$/, ".thumb.webp");
+}

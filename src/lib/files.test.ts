@@ -8,6 +8,7 @@ import {
   initials,
   isStoragePathFor,
   storagePath,
+  thumbnailPath,
 } from "./files";
 
 const PROJECT = "11111111-2222-3333-4444-555555555555";
@@ -68,5 +69,13 @@ describe("initials", () => {
     expect(initials("Olivia Owner")).toBe("OO");
     expect(initials("eddie")).toBe("E");
     expect(initials("  ")).toBe("?");
+  });
+});
+
+describe("thumbnailPath", () => {
+  it("swaps the extension", () => {
+    expect(thumbnailPath(`${PROJECT}/moodboard/${FILE}.png`)).toBe(
+      `${PROJECT}/moodboard/${FILE}.thumb.webp`,
+    );
   });
 });
