@@ -107,11 +107,15 @@ language plpgsql set search_path = '' as $$
 begin
   delete from public.activity_log;
   delete from public.invitations;
-  -- Board nodes hold their file without a cascade, so they go first.
+  -- Board nodes and shot frames hold their file without a cascade, so they
+  -- go first.
   delete from public.moodboard_nodes;
+  delete from public.shot_frames;
   delete from public.files;
   delete from public.project_members;
   delete from public.projects;
+  -- A talent in use cannot be deleted; the cast links went with the projects.
+  delete from public.talents;
   delete from public.brands;
   delete from public.clients;
   delete from public.app_settings;
@@ -128,7 +132,8 @@ $$;
 --   deactivated    member, editor of project A, deactivated
 --   stranger       signed-in auth user without a profile
 -- Creating the projects also seeds each with one active concept, one
--- moodboard and four task columns (Open, In progress, Review, Done).
+-- moodboard, four task columns (Open, In progress, Review, Done) and one
+-- creative ("Main film") holding one segment ("Segment 1").
 create function tests.setup_workspace() returns void
 language plpgsql set search_path = '' as $$
 declare
@@ -171,6 +176,20 @@ create function tests.section_id(p_project_id uuid, p_name text) returns uuid
 language sql stable security definer set search_path = '' as $$
   select s.id from public.task_sections s
   where s.project_id = p_project_id and s.name = p_name;
+$$;
+
+-- The creative and the segment every new project starts with, for callers
+-- whose role cannot read the project.
+create function tests.creative_id(p_project_id uuid) returns uuid
+language sql stable security definer set search_path = '' as $$
+  select c.id from public.creatives c
+  where c.project_id = p_project_id and c.title = 'Main film';
+$$;
+
+create function tests.segment_id(p_project_id uuid) returns uuid
+language sql stable security definer set search_path = '' as $$
+  select s.id from public.segments s
+  where s.project_id = p_project_id and s.title = 'Segment 1';
 $$;
 
 grant usage on schema tests to anon, authenticated;

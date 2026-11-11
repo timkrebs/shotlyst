@@ -120,10 +120,11 @@ select results_eq(
   $$ update public.moodboard_nodes set project_id = tests.project_b()
      where id = 'd0000000-0000-4000-8000-000000000001' returning project_id $$,
   array[tests.project_a()], 'an update cannot change the project_id of a board node');
-select results_eq(
+select throws_ok(
   $$ update public.concept_beats set concept_id = 'cc000000-0000-4000-8000-000000000002'
-     where title = 'Forged' returning project_id $$,
-  array[tests.project_b()], 'a beat moved to another concept follows that concept''s project');
+     where title = 'Forged' $$,
+  '23514', 'a row cannot move to another project',
+  'a beat cannot move to a concept of another project');
 select throws_ok(
   $$ insert into public.concept_beats (concept_id, title, start_sec, end_sec, position)
      values (gen_random_uuid(), 'Orphan', 0, 5, 'G') $$,

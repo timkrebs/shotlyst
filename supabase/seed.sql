@@ -137,3 +137,80 @@ join (values
 ) as t (section, assignee_id, title, description, priority, labels, due_at, position)
   on t.section = s.name
 where s.project_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+-- Phase 3 demo data for Harbour Spot. Creating the project already seeded its
+-- creative "Main film" with one segment. "Opening" stays under its target
+-- duration (9 of 10 seconds), "The pour" runs over (15 of 12 seconds).
+insert into public.talents (
+  id, name, type, description, languages, residence, daily_rate_cents, tags, created_by
+) values
+  ('66666666-6666-4666-8666-666666666666', 'Mara Lindqvist', 'person',
+   'Barista at the roastery; calm on camera, steady hands.', array['German', 'Swedish', 'English'],
+   'Hamburg', 45000, array['barista', 'lead'], '11111111-1111-4111-8111-111111111111'),
+  ('77777777-7777-4777-8777-777777777777', 'Espresso machine', 'object',
+   'Two-group lever machine from the roastery bar. Needs 25 minutes to heat up.', '{}',
+   null, null, array['prop', 'hero'], '11111111-1111-4111-8111-111111111111');
+
+update public.segments
+set title = 'Opening', description = 'The harbour wakes up and the roastery opens.',
+    target_duration_sec = 10
+where project_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+insert into public.segments (
+  creative_id, title, description, target_duration_sec, position, created_by
+)
+select c.id, 'The pour', 'From the beans to the first cup on the pier.', 12, 'k',
+       '11111111-1111-4111-8111-111111111111'
+from public.creatives c
+where c.project_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+insert into public.shots (
+  id, segment_id, position, action, audio, shot_size, camera_movement, camera_angle, lens,
+  int_ext, day_night, duration_sec, setup_min, status, custom_values, created_by
+)
+select t.id, s.id, t.position, t.action, t.audio, t.shot_size, t.camera_movement,
+       t.camera_angle, t.lens, t.int_ext, t.day_night, t.duration_sec, t.setup_min, t.status,
+       t.custom_values, '22222222-2222-4222-8222-222222222222'
+from public.segments s
+join (values
+  ('dddddddd-0000-4000-8000-000000000001'::uuid, 'Opening', 'G',
+   'Fog lifts over the docks; the roastery sign flickers on.', 'Ferry horn, gulls',
+   'wide', 'static', 'eye_level', '24 mm', 'ext', 'dawn', 4, 30, 'ready',
+   '{"vfx": true}'::jsonb),
+  ('dddddddd-0000-4000-8000-000000000002'::uuid, 'Opening', 'V',
+   'Mara unlocks the roastery door and switches on the lights.', 'Keys, door bell',
+   'medium', 'pan', 'eye_level', '35 mm', 'int', 'dawn', 3, 15, 'ready', '{}'::jsonb),
+  ('dddddddd-0000-4000-8000-000000000003'::uuid, 'Opening', 'k',
+   'The espresso machine hisses as it warms up.', 'Steam hiss',
+   'close_up', 'static', 'low', '85 mm', 'int', 'day', 2, 10, 'planned', '{}'::jsonb),
+  ('dddddddd-0000-4000-8000-000000000004'::uuid, 'The pour', 'G',
+   'Beans tumble into the grinder.', 'Beans rattling, grinder starts',
+   'close_up', 'dolly', 'high', '100 mm macro', 'int', 'day', 5, 20, 'planned',
+   '{}'::jsonb),
+  ('dddddddd-0000-4000-8000-000000000005'::uuid, 'The pour', 'V',
+   'Mara pulls the shot and watches the crema form.', 'Music comes in, soft',
+   'medium', 'static', 'eye_level', '50 mm', 'int', 'day', 6, 10, 'planned', '{}'::jsonb),
+  ('dddddddd-0000-4000-8000-000000000006'::uuid, 'The pour', 'k',
+   'Mara steps onto the pier, cup in hand, and looks across the water.', 'Music up, wind',
+   'wide', 'pan', 'eye_level', '24 mm', 'ext', 'day', 4, 25, 'planned',
+   '{"vfx": false}'::jsonb)
+) as t (id, segment, position, action, audio, shot_size, camera_movement, camera_angle, lens,
+        int_ext, day_night, duration_sec, setup_min, status, custom_values)
+  on t.segment = s.title
+where s.project_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+insert into public.shot_talents (shot_id, talent_id, created_by) values
+  ('dddddddd-0000-4000-8000-000000000002', '66666666-6666-4666-8666-666666666666',
+   '22222222-2222-4222-8222-222222222222'),
+  ('dddddddd-0000-4000-8000-000000000003', '77777777-7777-4777-8777-777777777777',
+   '22222222-2222-4222-8222-222222222222'),
+  ('dddddddd-0000-4000-8000-000000000005', '66666666-6666-4666-8666-666666666666',
+   '22222222-2222-4222-8222-222222222222'),
+  ('dddddddd-0000-4000-8000-000000000005', '77777777-7777-4777-8777-777777777777',
+   '22222222-2222-4222-8222-222222222222'),
+  ('dddddddd-0000-4000-8000-000000000006', '66666666-6666-4666-8666-666666666666',
+   '22222222-2222-4222-8222-222222222222');
+
+insert into public.shotlist_columns (project_id, key, label, type, position, created_by) values
+  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'vfx', 'VFX', 'checkbox', 'V',
+   '11111111-1111-4111-8111-111111111111');

@@ -99,7 +99,7 @@ select isnt_empty(
 select throws_ok(
   $$ update public.concept_beats set concept_id = 'cc000000-0000-4000-8000-000000000002'
      where id = 'cb000000-0000-4000-8000-000000000001' $$,
-  '42501', null, 'editor cannot move a beat to a concept of project B');
+  '23514', 'a row cannot move to another project', 'editor cannot move a beat to a concept of project B');
 select is_empty(
   $$ update public.concept_beats set title = 'hacked'
      where id = 'cb000000-0000-4000-8000-000000000003' returning id $$,
