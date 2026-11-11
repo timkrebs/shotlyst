@@ -107,6 +107,8 @@ language plpgsql set search_path = '' as $$
 begin
   delete from public.activity_log;
   delete from public.invitations;
+  -- Board nodes hold their file without a cascade, so they go first.
+  delete from public.moodboard_nodes;
   delete from public.files;
   delete from public.project_members;
   delete from public.projects;
@@ -125,6 +127,8 @@ $$;
 --   outsider       member, editor of project B only
 --   deactivated    member, editor of project A, deactivated
 --   stranger       signed-in auth user without a profile
+-- Creating the projects also seeds each with one active concept, one
+-- moodboard and four task columns (Open, In progress, Review, Done).
 create function tests.setup_workspace() returns void
 language plpgsql set search_path = '' as $$
 declare
@@ -160,6 +164,13 @@ begin
     (tests.project_a(), tests.uid('deactivated'), 'editor', tests.uid('owner')),
     (tests.project_b(), tests.uid('outsider'), 'editor', tests.uid('owner'));
 end;
+$$;
+
+-- A task column by name, for callers whose role cannot read the project.
+create function tests.section_id(p_project_id uuid, p_name text) returns uuid
+language sql stable security definer set search_path = '' as $$
+  select s.id from public.task_sections s
+  where s.project_id = p_project_id and s.name = p_name;
 $$;
 
 grant usage on schema tests to anon, authenticated;

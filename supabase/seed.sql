@@ -82,3 +82,58 @@ insert into public.activity_log (project_id, actor_id, action, entity_type, enti
   ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '11111111-1111-4111-8111-111111111111',
    'project.created', 'project', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
    'Created the project Night Ferry');
+
+-- Phase 2 demo data for Harbour Spot. Creating the project already seeded its
+-- active concept, its moodboard and the four task columns.
+insert into public.concept_beats (
+  concept_id, title, description, start_sec, end_sec, position, created_by
+)
+select c.id, b.title, b.description, b.start_sec, b.end_sec, b.position,
+       '11111111-1111-4111-8111-111111111111'
+from public.concepts c
+cross join (values
+  ('Dawn at the docks', 'Fog, cranes, the first ferry horn. No dialogue.', 0, 8, 'G'),
+  ('The roast', 'Hands, beans, steam. Cut on the rhythm of the drum.', 8, 22, 'V'),
+  ('First sip', 'Commuter on the pier, cup in hand, logo and tagline.', 22, 30, 'k')
+) as b (title, description, start_sec, end_sec, position)
+where c.project_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' and c.is_active;
+
+insert into public.beat_items (beat_id, label, done, position, created_by)
+select b.id, i.label, i.done, i.position, '22222222-2222-4222-8222-222222222222'
+from public.concept_beats b
+join (values
+  ('Dawn at the docks', 'Ask the port authority about filming before 6 am', false, 'G'),
+  ('Dawn at the docks', 'Check the sunrise time for the shoot week', true, 'V'),
+  ('The roast', 'Decide between macro lens and probe lens', false, 'G'),
+  ('First sip', 'Agree the tagline wording with the client', false, 'G'),
+  ('First sip', 'Find a commuter who is not an actor', false, 'V')
+) as i (beat, label, done, position) on i.beat = b.title
+where b.project_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+-- One task is overdue, one is due today at 18:00 in the workspace timezone;
+-- the one in Done is completed by the column trigger.
+insert into public.tasks (
+  project_id, section_id, assignee_id, title, description, priority, labels, due_at,
+  position, created_by
+)
+select s.project_id, s.id, t.assignee_id, t.title, t.description, t.priority, t.labels,
+       t.due_at, t.position, '11111111-1111-4111-8111-111111111111'
+from public.task_sections s
+join (values
+  ('Open', '22222222-2222-4222-8222-222222222222'::uuid, 'Scout the east pier at sunrise',
+   'Bring the light meter and note where the cranes block the sun.', 'high',
+   array['location'], now() - interval '3 days', 'G'),
+  ('Open', null, 'Collect music references', null, 'low',
+   array['sound'], null::timestamptz, 'V'),
+  ('In progress', '11111111-1111-4111-8111-111111111111'::uuid, 'Send the treatment to the client',
+   'Final read-through first.', 'urgent',
+   array['client'],
+   (date_trunc('day', now() at time zone 'Europe/Berlin') + interval '18 hours')
+     at time zone 'Europe/Berlin', 'G'),
+  ('Review', '22222222-2222-4222-8222-222222222222'::uuid, 'Shot list for the roast sequence',
+   null, 'normal', array['camera'], now() + interval '4 days', 'G'),
+  ('Done', '11111111-1111-4111-8111-111111111111'::uuid, 'Confirm the budget with the roastery',
+   null, 'normal', array['client'], now() - interval '6 days', 'G')
+) as t (section, assignee_id, title, description, priority, labels, due_at, position)
+  on t.section = s.name
+where s.project_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
