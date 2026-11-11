@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, FolderKanban, Settings, Sparkles, User, Users } from "lucide-react";
+import { Building2, FolderKanban, House, Settings, Sparkles, User, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -15,7 +15,13 @@ interface NavItem {
 }
 
 const SECTIONS: { title: string | null; items: NavItem[] }[] = [
-  { title: null, items: [{ href: "/projects", label: en.nav.projects, icon: FolderKanban }] },
+  {
+    title: null,
+    items: [
+      { href: "/", label: en.nav.home, icon: House },
+      { href: "/projects", label: en.nav.projects, icon: FolderKanban },
+    ],
+  },
   {
     title: en.nav.library,
     items: [
@@ -54,7 +60,9 @@ export function AppNav({ isAdmin, orientation }: { isAdmin: boolean; orientation
               </p>
             ) : null}
             {items.map((item) => {
-              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const active =
+                pathname === item.href ||
+                (item.href !== "/" && pathname.startsWith(`${item.href}/`));
               return (
                 <Link
                   key={item.href}

@@ -27,14 +27,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh">
       <aside className="bg-muted/30 hidden w-56 shrink-0 flex-col gap-6 border-r p-4 md:flex">
-        <Link href="/projects" className="px-2 text-base font-semibold tracking-tight">
+        <Link href="/" className="px-2 text-base font-semibold tracking-tight">
           {en.app.name}
         </Link>
         <AppNav isAdmin={isAdmin} orientation="side" />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 items-center gap-3 border-b px-4">
-          <Link href="/projects" className="font-semibold tracking-tight md:hidden">
+          <Link href="/" className="font-semibold tracking-tight md:hidden">
             {en.app.name}
           </Link>
           <div className="min-w-0 flex-1 md:hidden">
