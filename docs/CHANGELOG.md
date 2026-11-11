@@ -62,13 +62,16 @@ One entry per phase: what was built, what is open, which assumptions were made.
 | Without a session every route redirects to `/login` | Passes (e2e) |
 | An invited user sets a password and sees only the projects they were added to | Passes (e2e, against the local mail catcher) |
 | RLS tests pass for editor, viewer, outsider and anonymous | Passes (`pnpm test:rls`) |
-| Upload and preview work on the Vercel URL | Passes locally (e2e). **Not yet verified on Vercel**: the hosted Supabase project, the GitHub repository and the Vercel project are not created yet. |
+| Upload and preview work on the Vercel URL | Passes locally (e2e). **Not yet verified on Vercel**: the app is deployed at `https://shotlyst-1txb.vercel.app`, but the hosted database has no schema yet, so nobody can sign in there. |
 
 ### Open
 
-- **Deployment.** Steps 1 to 11 of "Deployment on Vercel and Supabase setup"
-  in the plan are still to do, including the backup GitHub Action (step 10).
-  The CI workflow has not run on GitHub yet.
+- **Deployment.** Done: GitHub repository, Vercel project with the Supabase
+  integration and all seven variables, a green CI run, a production
+  deployment that serves `/login` and redirects everything else. Still to
+  do: apply the migration to the hosted database (`supabase login`,
+  `supabase link`, `supabase db push`), the dashboard settings in the table
+  below, SMTP, and the backup GitHub Action (step 10 of the plan).
 - **Email templates on the hosted project.** The invitation and recovery
   templates in `supabase/templates/` must also be set in the hosted project
   (dashboard or `supabase config push`). They link to the app with a token
@@ -82,6 +85,13 @@ One entry per phase: what was built, what is open, which assumptions were made.
 - **Optional daily email digest, TOTP.** Later phases, as planned.
 
 ### Assumptions and deviations
+
+- **Email provider.** Resend is not available (its free tier is used up
+  elsewhere). Auth emails go through another SMTP provider configured in
+  Supabase; the code does not depend on which one. The provider for call
+  sheets and notifications is decided in phase 9.
+- **`vercel.json` pins `"framework": "nextjs"`**, because the Vercel project
+  was created before the code existed and had no framework preset.
 
 - **Next.js 16 names middleware "proxy".** The session check lives in
   `src/proxy.ts`; `src/lib/supabase/middleware.ts` keeps its planned name.
@@ -136,8 +146,8 @@ Vercel, for Production and Preview:
 
 Not needed until later phases: `ANTHROPIC_API_KEY`, `AI_TEXT_MODEL`,
 `AI_IMAGE_PROVIDER`, `AI_IMAGE_API_KEY` (phase 8), `ORS_API_KEY` (phase 5),
-`RESEND_API_KEY`, `MAIL_FROM` (phase 9; phase 1 sends mail through Supabase
-Auth only).
+and the mail API key and `MAIL_FROM` (phase 9; phase 1 sends mail through
+Supabase Auth only).
 
 Supabase (dashboard settings, not environment variables):
 
@@ -147,7 +157,7 @@ Supabase (dashboard settings, not environment variables):
 | Authentication → Users | Create your own user (the `OWNER_EMAIL` address) with a long password |
 | Authentication → URL Configuration → Site URL | The production URL |
 | Authentication → URL Configuration → Redirect URLs | `https://<your-domain>/**` |
-| Authentication → Emails → SMTP Settings | Resend: host `smtp.resend.com`, port `465`, user `resend`, password = your Resend API key, sender = an address on your verified domain |
+| Authentication → Emails → SMTP Settings | Any SMTP provider (for example Brevo: host `smtp-relay.brevo.com`, port `587`, the SMTP login and key from its dashboard) with a sender address the provider has verified |
 | Authentication → Emails → Templates → Invite user | Content of `supabase/templates/invite.html` |
 | Authentication → Emails → Templates → Reset password | Content of `supabase/templates/recovery.html` |
 | Authentication → Policies → Minimum password length | 10 |
