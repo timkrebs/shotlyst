@@ -1,9 +1,0 @@
-# Keep the Go build context small: the service image needs only Go sources.
-.git
-.env
-bin
-tmp
-web
-deploy
-docs
-**/node_modules
