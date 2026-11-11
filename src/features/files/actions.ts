@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { ActionError, defineAction } from "@/lib/action";
 import { logActivity } from "@/lib/activity";
-import { fileKind, isStoragePathFor, MEDIA_BUCKET } from "@/lib/files";
+import { fileKind, isStoragePathFor, MEDIA_BUCKET, thumbnailPath } from "@/lib/files";
 import { requireProjectRole } from "@/lib/permissions/guards";
 import { en } from "@/messages/en";
 
@@ -45,6 +45,7 @@ export const registerFile = defineAction(registerFileSchema, async (input) => {
     summary: en.activity.fileUploaded(input.name),
   });
   revalidatePath(`/projects/${input.projectId}/files`);
+  return { id: data.id };
 });
 
 export const deleteFile = defineAction(fileIdSchema, async ({ projectId, fileId }) => {
@@ -57,10 +58,18 @@ export const deleteFile = defineAction(fileIdSchema, async ({ projectId, fileId 
     .maybeSingle();
   if (!file) throw new ActionError(en.errors.notFound);
 
-  const { error: storageError } = await supabase.storage.from(MEDIA_BUCKET).remove([file.path]);
-  if (storageError) throw new ActionError(en.files.errors.deleteFailed);
+  // The row goes first: a file still placed on a moodboard cannot be deleted,
+  // and then the stored object must stay as well.
   const { error } = await supabase.from("files").delete().eq("id", fileId);
-  if (error) throw new ActionError(en.files.errors.deleteFailed);
+  if (error) {
+    throw new ActionError(
+      error.code === "23503" ? en.files.errors.inUse : en.files.errors.deleteFailed,
+    );
+  }
+  const { error: storageError } = await supabase.storage
+    .from(MEDIA_BUCKET)
+    .remove([file.path, thumbnailPath(file.path)]);
+  if (storageError) console.error("storage remove failed", storageError.message);
 
   await logActivity(supabase, {
     projectId,
