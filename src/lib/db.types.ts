@@ -231,6 +231,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"creatives": {
+                  Row: {
+                    "aspect_ratio": string | null,"audience": string | null,"created_at": string,"created_by": string | null,"goal": string | null,"id": string,"key_message": string | null,"must_haves": string | null,"no_gos": string | null,"position": string,"project_id": string,"status": string,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "aspect_ratio"?: string | null,"audience"?: string | null,"created_at"?: string,"created_by"?: string | null,"goal"?: string | null,"id"?: string,"key_message"?: string | null,"must_haves"?: string | null,"no_gos"?: string | null,"position": string,"project_id": string,"status"?: string,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "aspect_ratio"?: string | null,"audience"?: string | null,"created_at"?: string,"created_by"?: string | null,"goal"?: string | null,"id"?: string,"key_message"?: string | null,"must_haves"?: string | null,"no_gos"?: string | null,"position"?: string,"project_id"?: string,"status"?: string,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "creatives_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "creatives_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"files": {
                   Row: {
                     "bucket": string,"created_at": string,"created_by": string | null,"folder": string | null,"height": number | null,"id": string,"kind": string,"mime": string,"name": string,"path": string,"project_id": string | null,"size": number,"updated_at": string,"width": number | null
@@ -381,14 +407,14 @@ isOneToOne: false
                   ]
                 },"moodboards": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"id": string,"project_id": string,"title": string,"updated_at": string
+                    "created_at": string,"created_by": string | null,"creative_id": string | null,"id": string,"project_id": string,"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"project_id": string,"title": string,"updated_at"?: string
+                    "created_at"?: string,"created_by"?: string | null,"creative_id"?: string | null,"id"?: string,"project_id": string,"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"project_id"?: string,"title"?: string,"updated_at"?: string
+                    "created_at"?: string,"created_by"?: string | null,"creative_id"?: string | null,"id"?: string,"project_id"?: string,"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -396,6 +422,12 @@ isOneToOne: false
       columns: ["created_by"]
 isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "moodboards_creative_id_fkey"
+      columns: ["creative_id"]
+isOneToOne: false
+      referencedRelation: "creatives"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "moodboards_project_id_fkey"
@@ -495,6 +527,210 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"segments": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"creative_id": string,"description": string | null,"id": string,"position": string,"project_id": string,"target_duration_sec": number | null,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"creative_id": string,"description"?: string | null,"id"?: string,"position": string,"project_id": string,"target_duration_sec"?: number | null,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"creative_id"?: string,"description"?: string | null,"id"?: string,"position"?: string,"project_id"?: string,"target_duration_sec"?: number | null,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "segments_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "segments_creative_id_fkey"
+      columns: ["creative_id"]
+isOneToOne: false
+      referencedRelation: "creatives"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "segments_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"shot_frames": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"file_id": string,"id": string,"project_id": string,"prompt": string | null,"shot_id": string,"source": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"file_id": string,"id"?: string,"project_id": string,"prompt"?: string | null,"shot_id": string,"source"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"file_id"?: string,"id"?: string,"project_id"?: string,"prompt"?: string | null,"shot_id"?: string,"source"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "shot_frames_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shot_frames_file_id_fkey"
+      columns: ["file_id"]
+isOneToOne: false
+      referencedRelation: "files"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shot_frames_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shot_frames_shot_id_fkey"
+      columns: ["shot_id"]
+isOneToOne: false
+      referencedRelation: "shots"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"shot_talents": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"id": string,"project_id": string,"shot_id": string,"talent_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"project_id": string,"shot_id": string,"talent_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"project_id"?: string,"shot_id"?: string,"talent_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "shot_talents_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shot_talents_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shot_talents_shot_id_fkey"
+      columns: ["shot_id"]
+isOneToOne: false
+      referencedRelation: "shots"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shot_talents_talent_id_fkey"
+      columns: ["talent_id"]
+isOneToOne: false
+      referencedRelation: "talents"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"shotlist_columns": {
+                  Row: {
+                    "config": NonNullable<Json>,"created_at": string,"created_by": string | null,"id": string,"key": string,"label": string,"position": string,"project_id": string,"type": string,"updated_at": string,"visible": boolean
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "config"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"id"?: string,"key": string,"label": string,"position": string,"project_id": string,"type": string,"updated_at"?: string,"visible"?: boolean
+                  }
+                  Update: {
+                    "config"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"id"?: string,"key"?: string,"label"?: string,"position"?: string,"project_id"?: string,"type"?: string,"updated_at"?: string,"visible"?: boolean
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "shotlist_columns_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shotlist_columns_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"shots": {
+                  Row: {
+                    "action": string | null,"active_frame_id": string | null,"audio": string | null,"camera_angle": string | null,"camera_movement": string | null,"created_at": string,"created_by": string | null,"creative_id": string,"custom_values": NonNullable<Json>,"day_night": string | null,"duration_sec": number,"equipment_note": string | null,"frame_rate": string | null,"id": string,"int_ext": string | null,"lens": string | null,"notes": string | null,"on_screen_text": string | null,"position": string,"project_id": string,"script_text": string | null,"segment_id": string,"setup_min": number | null,"shot_number": string | null,"shot_size": string | null,"status": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action"?: string | null,"active_frame_id"?: string | null,"audio"?: string | null,"camera_angle"?: string | null,"camera_movement"?: string | null,"created_at"?: string,"created_by"?: string | null,"creative_id": string,"custom_values"?: NonNullable<Json>,"day_night"?: string | null,"duration_sec"?: number,"equipment_note"?: string | null,"frame_rate"?: string | null,"id"?: string,"int_ext"?: string | null,"lens"?: string | null,"notes"?: string | null,"on_screen_text"?: string | null,"position": string,"project_id": string,"script_text"?: string | null,"segment_id": string,"setup_min"?: number | null,"shot_number"?: string | null,"shot_size"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "action"?: string | null,"active_frame_id"?: string | null,"audio"?: string | null,"camera_angle"?: string | null,"camera_movement"?: string | null,"created_at"?: string,"created_by"?: string | null,"creative_id"?: string,"custom_values"?: NonNullable<Json>,"day_night"?: string | null,"duration_sec"?: number,"equipment_note"?: string | null,"frame_rate"?: string | null,"id"?: string,"int_ext"?: string | null,"lens"?: string | null,"notes"?: string | null,"on_screen_text"?: string | null,"position"?: string,"project_id"?: string,"script_text"?: string | null,"segment_id"?: string,"setup_min"?: number | null,"shot_number"?: string | null,"shot_size"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "shots_active_frame_id_fkey"
+      columns: ["active_frame_id"]
+isOneToOne: false
+      referencedRelation: "shot_frames"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shots_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shots_creative_id_fkey"
+      columns: ["creative_id"]
+isOneToOne: false
+      referencedRelation: "creatives"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shots_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shots_segment_id_fkey"
+      columns: ["segment_id"]
+isOneToOne: false
+      referencedRelation: "segments"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"talents": {
+                  Row: {
+                    "avatar_file_id": string | null,"birth_date": string | null,"contact": string | null,"created_at": string,"created_by": string | null,"daily_rate_cents": number | null,"description": string | null,"id": string,"languages": (string)[],"name": string,"residence": string | null,"tags": (string)[],"type": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "avatar_file_id"?: string | null,"birth_date"?: string | null,"contact"?: string | null,"created_at"?: string,"created_by"?: string | null,"daily_rate_cents"?: number | null,"description"?: string | null,"id"?: string,"languages"?: (string)[],"name": string,"residence"?: string | null,"tags"?: (string)[],"type"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "avatar_file_id"?: string | null,"birth_date"?: string | null,"contact"?: string | null,"created_at"?: string,"created_by"?: string | null,"daily_rate_cents"?: number | null,"description"?: string | null,"id"?: string,"languages"?: (string)[],"name"?: string,"residence"?: string | null,"tags"?: (string)[],"type"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "talents_avatar_file_id_fkey"
+      columns: ["avatar_file_id"]
+isOneToOne: false
+      referencedRelation: "files"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "talents_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"task_sections": {
                   Row: {
                     "color": string,"created_at": string,"created_by": string | null,"id": string,"is_done": boolean,"name": string,"position": string,"project_id": string,"updated_at": string
@@ -576,6 +812,9 @@ isOneToOne: false
                            },
 "claim_ownership":
 { Args: { "p_display_name": string }; Returns: undefined
+                           },
+"duplicate_project":
+{ Args: { "p_name": string,"p_project_id": string,"p_project_number": string }; Returns: string
                            },
 "list_members":
 { Args: Record<PropertyKey, never>; Returns: {
