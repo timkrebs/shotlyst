@@ -2,6 +2,126 @@
 
 One entry per phase: what was built, what is open, which assumptions were made.
 
+## Phase 3 — Shot list (11 November 2026)
+
+### Built
+
+- **Database.** One migration with seven tables: `talents` (library),
+  `creatives`, `segments`, `shots`, `shot_talents`, `shot_frames`,
+  `shotlist_columns`, plus `moodboards.creative_id`. Child rows take
+  `project_id` from their parent; a shot's creative always follows its
+  segment; the active frame must be one of the shot's own frames. Rows that
+  have children cannot be re-parented (a segment stays in its creative, a
+  frame with its shot, shots and beats in their project).
+- **New-project defaults.** Every project now also starts with one creative
+  and its first segment; existing projects get them in the migration.
+- **Creatives.** Switcher at the top of the shot list; each creative has
+  goal, key message, audience, must-haves, no-gos, status and an optional
+  aspect ratio of its own.
+- **Shot list.** One row per shot, grouped by segment, with the columns
+  number, frame, action, audio, on-screen text, shot size, movement, angle,
+  lens, frame rate, INT/EXT, day/night, cast, duration, setup time, status,
+  note and equipment. Editing happens in place: Tab walks the cells, Enter
+  moves down and adds a shot after the last row of a segment. Shots and
+  segments are sorted by drag and drop, also across segments; selected
+  shots can be moved to a segment, duplicated or deleted. Columns can be
+  shown and hidden per project, and custom columns of type text, number,
+  select or checkbox added.
+- **Totals.** Each segment header shows the sum of its shot durations
+  against the target, green up to the target and red above it; the totals
+  of the creative and of the whole project sit at the top. They are computed
+  by `shotListTotals()` in `src/lib/shots/totals.ts` and never stored.
+- **Cast.** Picked in the cell by name from the talent library; an unknown
+  name creates the library entry on the spot.
+- **Frames.** Any number of versions per shot from an upload (cropped to
+  the film's aspect ratio in the browser) or a reference from the file
+  library; one is active.
+- **Views.** List, storyboard grid (two to six cards per row), timeline
+  (frames as wide as the shot is long, audio and on-screen text as tracks,
+  Play steps through in real time) and script (picture and sound, with a
+  print layout), all on the same shots.
+- **Film vocabulary.** The option lists for shot sizes, movements, angles
+  and so on live once in `src/lib/film/vocab.ts`.
+- **Client cache.** The shot list holds its data in TanStack Query and
+  changes it optimistically; writes for one shot run in order.
+- **Talent library.** `/library/talents` with search, create, edit and
+  delete, and a detail page that lists the projects and shots using a
+  talent, limited to what the viewer may read.
+- **Exports.** Shot list as PDF and CSV with the visible columns of the
+  screen view, grouped by segment with the same totals; storyboard as PDF
+  with 6, 9 or 12 frames per page; concept as PDF with text, images, tables
+  and beats. Rendered in Route Handlers with `@react-pdf/renderer`; logo and
+  company line come from the workspace settings.
+- **Tests.** 97 unit tests, 1,185 pgTAP assertions over all 26 tables, 37
+  Playwright tests.
+- **Carried over from earlier phases.** "Turn beats into segments" on the
+  beat rail; a moodboard can belong to a creative; projects can be
+  duplicated (structure and shots, not members, files, frames, boards or
+  tasks).
+
+### Acceptance
+
+| Criterion | Status |
+| --- | --- |
+| 100 shots can be entered by keyboard alone | Passes (e2e): 100 shots typed with Tab and Enter only, then checked in the database |
+| A segment total turns red when over target | Passes (e2e): the total follows each keystroke, stays green at exactly the target and turns red one second above it |
+| The PDF matches the screen view | Passes (e2e): the PDF and CSV carry exactly the visible columns in screen order, the segments, the same totals and the shots; hidden columns are absent. Checked on extracted PDF text, and once by eye |
+
+### Open
+
+- **Hosted database.** The phase 2 and phase 3 migrations are applied
+  locally only. Run `supabase db push --remote` before merging.
+- **Locations in the shot list.** The location column and
+  `shot_locations` arrive with the location library in phase 5.
+- **Scenes.** `shots.scene_id` and grouping by scene come with phase 7.
+- **Props** (`props` table) come with phase 6.
+- **AI frames** and "generate images" for selected shots come with phase 8.
+- **Storyboard as a PNG bundle** is not built yet; the storyboard exports
+  as PDF.
+- **Talent pictures.** `talents.avatar_file_id` exists but has no upload
+  yet; it is first needed for AI reference images.
+- **PDF limits.** PDFs use the built-in Helvetica, so text outside Latin-1
+  (for example CJK or emoji) does not render. WebP images are skipped in
+  PDFs; uploaded frames are stored as JPEG or PNG for that reason. Frame
+  and concept images in PDFs were checked by eye, not by an automated test;
+  the logo is covered by a test.
+- **Day rates** show as plain numbers; the workspace has no currency
+  setting yet.
+- **Live updates.** Two people in one shot list do not see each other's
+  edits until a reload; phase 4 patches the same client cache from the
+  project channel.
+
+### Fixed from earlier phases
+
+- **Brands and Clients pages failed with a server error** when signed in
+  (since phase 1): a message function was passed from a Server Component to
+  a client component. The end-to-end tests now open all three library lists.
+
+### Assumptions and deviations
+
+- **Every shot belongs to a segment**, and every creative keeps at least
+  one segment, so the list is always grouped.
+- **Shot numbers are the running order** (1, 2, 3 …) and are not stored.
+  `shots.shot_number` exists as an optional label that replaces the number;
+  the list has no editor for it yet.
+- **Column visibility is a project setting**, stored in `shotlist_columns`
+  as rows of type `builtin`, so everyone and every export see the same
+  columns.
+- **Custom column keys are fixed once created**; renaming changes the label
+  only, because the stored values hang on the key.
+- **`creatives.status`** has the values `draft`, `in_review`, `approved`,
+  and `shots.status` has `planned`, `ready`, `shot`, `dropped`; the plan
+  names the columns without values.
+- **`talents.type`** has the values `person`, `animal`, `object`.
+- **Activity log.** Cell edits log one "edited a shot" entry per shot and
+  editing session, not one per cell.
+- **TanStack Table is pinned to version 8.** Version 9 is a new major
+  release with a different API.
+- **Dependencies added** (MIT unless noted): `@tanstack/react-query`
+  (client cache), `@tanstack/react-table` (column model of the shot list),
+  `@react-pdf/renderer` (PDF exports), and as a development dependency
+  `pdfjs-dist` (Apache-2.0, reads PDF text in the end-to-end tests).
+
 ## Phase 2 — Ideation (11 November 2026)
 
 ### Built
@@ -58,8 +178,6 @@ One entry per phase: what was built, what is open, which assumptions were made.
 
 - **Hosted database.** The phase 2 migration is applied locally only. Run
   `supabase db push --remote` before merging the branch.
-- **"Turn beats into segments"** needs the `segments` table and comes with
-  phase 3.
 - **Notifications.** Assigning a task does not notify yet; the
   `notifications` table and the bell arrive in phase 4, together with
   comment threads on tasks.
