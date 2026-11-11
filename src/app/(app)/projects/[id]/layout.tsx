@@ -22,7 +22,7 @@ export default async function ProjectLayout({ children, params }: LayoutProps<"/
 
   return (
     <ProjectAccessProvider projectId={id} role={role}>
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2 print:hidden">
         <span className="text-muted-foreground text-sm tabular-nums">{project.project_number}</span>
         <span className="truncate text-lg font-semibold tracking-tight">{project.name}</span>
         {project.archived_at ? <Badge variant="secondary">{en.projects.archivedBadge}</Badge> : null}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { AppNav } from "@/components/app-nav";
+import { QueryProvider } from "@/components/query-provider";
 import { UserMenu } from "@/components/user-menu";
 import { requireMemberPage } from "@/lib/permissions/guards";
 import { isAdminRole } from "@/lib/permissions/roles";
@@ -26,14 +27,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-dvh">
-      <aside className="bg-muted/30 hidden w-56 shrink-0 flex-col gap-6 border-r p-4 md:flex">
+      <aside className="bg-muted/30 hidden w-56 shrink-0 flex-col gap-6 border-r p-4 md:flex print:!hidden">
         <Link href="/" className="px-2 text-base font-semibold tracking-tight">
           {en.app.name}
         </Link>
         <AppNav isAdmin={isAdmin} orientation="side" />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 items-center gap-3 border-b px-4">
+        <header className="flex h-14 items-center gap-3 border-b px-4 print:hidden">
           <Link href="/" className="font-semibold tracking-tight md:hidden">
             {en.app.name}
           </Link>
@@ -49,7 +50,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             />
           </div>
         </header>
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main className="flex-1 p-4 md:p-6 print:p-0">
+          <QueryProvider>{children}</QueryProvider>
+        </main>
       </div>
     </div>
   );

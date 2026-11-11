@@ -10,6 +10,7 @@ const MODULES = [
   { segment: "overview", label: en.projects.nav.overview },
   { segment: "concepts", label: en.projects.nav.concept },
   { segment: "moodboard", label: en.projects.nav.moodboard },
+  { segment: "shotlist", label: en.projects.nav.shotlist },
   { segment: "tasks", label: en.projects.nav.tasks },
   { segment: "files", label: en.projects.nav.files },
 ] as const;
@@ -18,7 +19,7 @@ const MODULES = [
 export function ProjectNav({ projectId }: { projectId: string }) {
   const pathname = usePathname();
   return (
-    <nav aria-label={en.projects.nav.label} className="mb-6 flex gap-1 overflow-x-auto border-b">
+    <nav aria-label={en.projects.nav.label} className="mb-6 flex gap-1 overflow-x-auto border-b print:hidden">
       {MODULES.map((module) => {
         const href = `/projects/${projectId}/${module.segment}`;
         const active = pathname.startsWith(href);
