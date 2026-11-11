@@ -2,6 +2,101 @@
 
 One entry per phase: what was built, what is open, which assumptions were made.
 
+## Phase 2 — Ideation (11 November 2026)
+
+### Built
+
+- **Database.** One migration with nine tables: `concept_folders`,
+  `concepts`, `concept_beats`, `beat_items`, `moodboards`, `moodboard_nodes`,
+  `moodboard_edges`, `task_sections`, `tasks`. All carry `project_id`; child
+  tables take it from their parent in a trigger. Reads need `can_read`,
+  writes `can_edit`. Triggers keep references inside one project and one
+  board, stop rows from moving between projects, and set or clear
+  `tasks.completed_at` from the column a task sits in.
+- **New-project defaults.** A trigger gives every new project an empty
+  active concept, a moodboard and the four task columns. The migration adds
+  the same to the projects that already exist.
+- **Concepts.** Several per project in folders, type treatment, brief or
+  note, exactly one active (`set_active_concept()` switches in one
+  transaction). Editor with headings, lists, to-dos, quotes, tables, images
+  and embedded PDFs; changes save continuously. Images and PDFs are stored
+  as file references and get a fresh signed URL each time they render.
+- **Beats.** A rail beside the text with start and end per beat, bars over
+  the total length, overlaps and gaps flagged, and open items with
+  checkboxes under each beat. The logic is the pure, tested
+  `analyzeBeats()` in `src/lib/concepts/beats.ts`.
+- **Moodboard.** Infinite canvas with zoom and pan; images, sticky notes,
+  text, colour swatches, link cards and groups; connector lines with
+  optional label and arrowhead; multi-select, align, z-order, duplicate,
+  undo and redo (50 steps); a five-colour palette from an image; PNG export
+  of the selection or the board; several boards per project. Images arrive
+  by upload, drag and drop, paste or from the file library, go straight to
+  storage and show as 640 px previews. Changes are saved as diffs in
+  batches every 500 ms.
+- **Tasks.** Board with the columns Open, In progress, Review and Done
+  (renamable), drag and drop within and between columns, and a list view
+  sortable by due date and filterable by assignee. A task has title,
+  description, assignee, priority, labels, due date and subtasks. The
+  assignee can complete their own task as a commenter through
+  `set_task_completed()`.
+- **Home.** `/` shows the member's open tasks due today or overdue, with
+  the project name, and the recently edited projects.
+- **Ordering.** `src/lib/position.ts` generates fractional keys, so a move
+  writes one row. `position` columns use collation "C".
+- **Tests.** 47 unit tests, 839 pgTAP assertions over all 19 tables, 15
+  Playwright tests.
+
+### Acceptance
+
+| Criterion | Status |
+| --- | --- |
+| A concept with image and table survives a reload | Passes (e2e) |
+| A board with 200 images stays usable | Passes (e2e): all 200 render, and a 30-step drag of one image finishes well inside the 3-second budget and is saved |
+| A card moved to Done sets `completed_at` | Passes (e2e, checked in the database; moving it back clears it) |
+
+### Open
+
+- **Hosted database.** The phase 2 migration is applied locally only. Run
+  `supabase db push --remote` before merging the branch.
+- **"Turn beats into segments"** needs the `segments` table and comes with
+  phase 3.
+- **Notifications.** Assigning a task does not notify yet; the
+  `notifications` table and the bell arrive in phase 4, together with
+  comment threads on tasks.
+- **Home** has no upcoming shoot days (phase 5) and no unread notifications
+  (phase 4) yet.
+- **Tasks** have no link to a shoot day yet (phase 5).
+- **Moodboard.** No live cursors (phase 4) and no board per creative
+  (phase 3). No free drawing, as planned.
+- **Concept co-editing.** `concepts.ydoc` is not created yet; phase 4 adds
+  it. Until then two people editing the same concept overwrite each other.
+
+### Assumptions and deviations
+
+- **Due dates are calendar days stored as the end of that day in UTC.**
+  "Due today" and "overdue" on Home follow UTC, not the project time zone.
+- **`concepts.status`** has the values `draft` and `final`; the plan names
+  the column without values.
+- **The active concept cannot be deleted.** Another one has to be set active
+  first, so a project never ends up without one.
+- **A file placed on a moodboard cannot be deleted** from the file library
+  until it is removed from the board.
+- **Moodboard previews are made in the browser** (a 640 px WebP next to the
+  original), because image transformation in Supabase Storage is a paid
+  feature.
+- **Autosave and the activity log.** The concept editor and the moodboard
+  log one "edited" entry per editing session, not one per save.
+- **A drag that ends within half a second of closing the tab can be lost
+  on the moodboard**, the cost of saving in batches.
+- **`tasks.shoot_day_id` is left out** until shoot days exist (phase 5).
+- **Dependencies added** (all MIT): `@tiptap/core`, `@tiptap/react`,
+  `@tiptap/pm`, `@tiptap/starter-kit`, `@tiptap/extension-table`,
+  `@tiptap/extension-list`, `@tiptap/extensions` (concept editor),
+  `@xyflow/react` (moodboard canvas), `@dnd-kit/core`, `@dnd-kit/sortable`,
+  `@dnd-kit/utilities` (task board), `html-to-image` (PNG export).
+  The ordering keys are implemented in the repo because the usual package
+  for them is CC0-licensed, which the rules do not allow.
+
 ## Phase 1 — Foundation (11 November 2026)
 
 ### Built
