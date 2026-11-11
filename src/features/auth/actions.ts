@@ -40,16 +40,22 @@ export const signIn = defineAction(signInSchema, async ({ email, password, next 
     throw new ActionError(en.auth.errors.invalidCredentials);
   }
 
-  let { data: profile } = await supabase
+  const lookup = await supabase
     .from("profiles")
     .select("id, deactivated_at")
     .eq("id", data.user.id)
     .maybeSingle();
+  // A failing lookup usually means the migrations are missing on this database.
+  if (lookup.error) console.error("profile lookup failed", lookup.error.message);
+  let profile = lookup.data;
 
   // First login of the workspace: the configured account becomes owner.
   if (!profile && serverEnv.ownerEmail && email === serverEnv.ownerEmail) {
     const { error: claimError } = await supabase.rpc("claim_ownership", { p_display_name: "" });
-    if (!claimError) profile = { id: data.user.id, deactivated_at: null };
+    if (claimError) console.error("ownership claim failed", claimError.message);
+    else profile = { id: data.user.id, deactivated_at: null };
+  } else if (!profile) {
+    console.error("sign-in without a profile; the email does not match OWNER_EMAIL");
   }
 
   if (!profile || profile.deactivated_at) {
