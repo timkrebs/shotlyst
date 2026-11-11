@@ -69,6 +69,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"beat_items": {
+                  Row: {
+                    "beat_id": string,"created_at": string,"created_by": string | null,"done": boolean,"id": string,"label": string,"position": string,"project_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "beat_id": string,"created_at"?: string,"created_by"?: string | null,"done"?: boolean,"id"?: string,"label": string,"position": string,"project_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "beat_id"?: string,"created_at"?: string,"created_by"?: string | null,"done"?: boolean,"id"?: string,"label"?: string,"position"?: string,"project_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "beat_items_beat_id_fkey"
+      columns: ["beat_id"]
+isOneToOne: false
+      referencedRelation: "concept_beats"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "beat_items_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "beat_items_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"brands": {
                   Row: {
                     "created_at": string,"created_by": string | null,"description": string | null,"id": string,"industry": string | null,"name": string,"no_gos": string | null,"target_audience": string | null,"tone": string | null,"updated_at": string,"website": string | null
@@ -106,6 +138,96 @@ isOneToOne: false
       columns: ["created_by"]
 isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"concept_beats": {
+                  Row: {
+                    "concept_id": string,"created_at": string,"created_by": string | null,"description": string | null,"end_sec": number,"id": string,"position": string,"project_id": string,"start_sec": number,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "concept_id": string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"end_sec": number,"id"?: string,"position": string,"project_id": string,"start_sec": number,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "concept_id"?: string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"end_sec"?: number,"id"?: string,"position"?: string,"project_id"?: string,"start_sec"?: number,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "concept_beats_concept_id_fkey"
+      columns: ["concept_id"]
+isOneToOne: false
+      referencedRelation: "concepts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "concept_beats_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "concept_beats_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"concept_folders": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"id": string,"name": string,"position": string,"project_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"name": string,"position": string,"project_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"name"?: string,"position"?: string,"project_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "concept_folders_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "concept_folders_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"concepts": {
+                  Row: {
+                    "content": NonNullable<Json>,"created_at": string,"created_by": string | null,"folder_id": string | null,"id": string,"is_active": boolean,"project_id": string,"status": string,"summary": string | null,"title": string,"type": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "content"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"folder_id"?: string | null,"id"?: string,"is_active"?: boolean,"project_id": string,"status"?: string,"summary"?: string | null,"title": string,"type"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "content"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"folder_id"?: string | null,"id"?: string,"is_active"?: boolean,"project_id"?: string,"status"?: string,"summary"?: string | null,"title"?: string,"type"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "concepts_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "concepts_folder_id_fkey"
+      columns: ["folder_id"]
+isOneToOne: false
+      referencedRelation: "concept_folders"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "concepts_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
       referencedColumns: ["id"]
     }
                   ]
@@ -174,6 +296,114 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"moodboard_edges": {
+                  Row: {
+                    "board_id": string,"created_at": string,"created_by": string | null,"id": string,"project_id": string,"source_node_id": string,"style": NonNullable<Json>,"target_node_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "board_id": string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"project_id": string,"source_node_id": string,"style"?: NonNullable<Json>,"target_node_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "board_id"?: string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"project_id"?: string,"source_node_id"?: string,"style"?: NonNullable<Json>,"target_node_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "moodboard_edges_board_id_fkey"
+      columns: ["board_id"]
+isOneToOne: false
+      referencedRelation: "moodboards"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "moodboard_edges_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "moodboard_edges_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "moodboard_edges_source_node_id_fkey"
+      columns: ["source_node_id"]
+isOneToOne: false
+      referencedRelation: "moodboard_nodes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "moodboard_edges_target_node_id_fkey"
+      columns: ["target_node_id"]
+isOneToOne: false
+      referencedRelation: "moodboard_nodes"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"moodboard_nodes": {
+                  Row: {
+                    "board_id": string,"created_at": string,"created_by": string | null,"data": NonNullable<Json>,"file_id": string | null,"height": number,"id": string,"project_id": string,"type": string,"updated_at": string,"width": number,"x": number,"y": number,"z": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "board_id": string,"created_at"?: string,"created_by"?: string | null,"data"?: NonNullable<Json>,"file_id"?: string | null,"height": number,"id"?: string,"project_id": string,"type": string,"updated_at"?: string,"width": number,"x": number,"y": number,"z"?: number
+                  }
+                  Update: {
+                    "board_id"?: string,"created_at"?: string,"created_by"?: string | null,"data"?: NonNullable<Json>,"file_id"?: string | null,"height"?: number,"id"?: string,"project_id"?: string,"type"?: string,"updated_at"?: string,"width"?: number,"x"?: number,"y"?: number,"z"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "moodboard_nodes_board_id_fkey"
+      columns: ["board_id"]
+isOneToOne: false
+      referencedRelation: "moodboards"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "moodboard_nodes_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "moodboard_nodes_file_id_fkey"
+      columns: ["file_id"]
+isOneToOne: false
+      referencedRelation: "files"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "moodboard_nodes_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"moodboards": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"id": string,"project_id": string,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"project_id": string,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"project_id"?: string,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "moodboards_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "moodboards_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"profiles": {
                   Row: {
@@ -265,6 +495,76 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"task_sections": {
+                  Row: {
+                    "color": string,"created_at": string,"created_by": string | null,"id": string,"is_done": boolean,"name": string,"position": string,"project_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "color"?: string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"is_done"?: boolean,"name": string,"position": string,"project_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "color"?: string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"is_done"?: boolean,"name"?: string,"position"?: string,"project_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "task_sections_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "task_sections_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"tasks": {
+                  Row: {
+                    "assignee_id": string | null,"completed_at": string | null,"created_at": string,"created_by": string | null,"description": string | null,"due_at": string | null,"id": string,"labels": (string)[],"parent_task_id": string | null,"position": string,"priority": string,"project_id": string,"section_id": string,"start_at": string | null,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "assignee_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"due_at"?: string | null,"id"?: string,"labels"?: (string)[],"parent_task_id"?: string | null,"position": string,"priority"?: string,"project_id": string,"section_id": string,"start_at"?: string | null,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "assignee_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"due_at"?: string | null,"id"?: string,"labels"?: (string)[],"parent_task_id"?: string | null,"position"?: string,"priority"?: string,"project_id"?: string,"section_id"?: string,"start_at"?: string | null,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tasks_assignee_id_fkey"
+      columns: ["assignee_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tasks_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tasks_parent_task_id_fkey"
+      columns: ["parent_task_id"]
+isOneToOne: false
+      referencedRelation: "tasks"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tasks_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tasks_section_id_fkey"
+      columns: ["section_id"]
+isOneToOne: false
+      referencedRelation: "task_sections"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Views: {
@@ -290,6 +590,12 @@ isOneToOne: false
                            },
 "record_login_failure":
 { Args: { "p_key": string }; Returns: undefined
+                           },
+"set_active_concept":
+{ Args: { "p_concept_id": string }; Returns: undefined
+                           },
+"set_task_completed":
+{ Args: { "p_completed": boolean,"p_task_id": string }; Returns: undefined
                            },
 "transfer_ownership":
 { Args: { "p_new_owner": string }; Returns: undefined
