@@ -1,4 +1,7 @@
+import { readFileSync } from "node:fs";
+
 import { expect, type Page } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
 
 export const SEED_PASSWORD = "shotlyst-demo-1";
 export const OWNER_EMAIL = "owner@shotlyst.test";
@@ -39,3 +42,33 @@ export const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
   "base64",
 );
+
+// Service-role client for arranging and inspecting data in tests. The keys
+// come from .env.local, the same file the app under test reads.
+export function adminClient() {
+  const env = Object.fromEntries(
+    readFileSync(".env.local", "utf8")
+      .split("\n")
+      .filter((line) => line.includes("=") && !line.startsWith("#"))
+      .map((line) => {
+        const index = line.indexOf("=");
+        return [line.slice(0, index), line.slice(index + 1).replace(/^"|"$/g, "")];
+      }),
+  );
+  return createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false },
+  });
+}
+
+// Signs in as the seeded owner and creates a project; returns its URL and ID.
+export async function createProject(page: Page, name: string) {
+  await signIn(page, OWNER_EMAIL, SEED_PASSWORD);
+  await expect(page).toHaveURL(/:3000\/$/);
+  await page.goto("/projects");
+  await page.getByRole("button", { name: "New project" }).click();
+  await page.getByLabel("Name").fill(name);
+  await page.getByRole("button", { name: "Create project" }).click();
+  await expect(page).toHaveURL(/\/projects\/[0-9a-f-]{36}\/overview$/);
+  const url = page.url().replace(/\/overview$/, "");
+  return { url, id: url.split("/").pop() as string };
+}

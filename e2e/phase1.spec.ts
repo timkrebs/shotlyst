@@ -52,8 +52,9 @@ let projectUrl = "";
 
 test("the owner creates a project, uploads a file and previews it", async ({ page }) => {
   await signIn(page, OWNER_EMAIL, SEED_PASSWORD);
-  await expect(page).toHaveURL(/\/projects$/);
+  await expect(page).toHaveURL(/:3000\/$/);
 
+  await page.goto("/projects");
   await page.getByRole("button", { name: "New project" }).click();
   await page.getByLabel("Name").fill(projectName);
   await expect(page.getByLabel("Project number")).toHaveValue(/^\d{4}-\d{3}$/);
@@ -79,7 +80,7 @@ test("the owner creates a project, uploads a file and previews it", async ({ pag
 
 test("an invited user sets a password and sees only their project", async ({ page, browser }) => {
   await signIn(page, OWNER_EMAIL, SEED_PASSWORD);
-  await expect(page).toHaveURL(/\/projects$/);
+  await expect(page).toHaveURL(/:3000\/$/);
   await page.goto(`${projectUrl}/overview`);
   await page.getByRole("button", { name: "Manage" }).click();
   await page.getByRole("button", { name: "Invite member" }).click();
@@ -99,7 +100,8 @@ test("an invited user sets a password and sees only their project", async ({ pag
   await invitee.getByLabel("New password").fill(inviteePassword);
   await invitee.getByRole("button", { name: "Join" }).click();
 
-  await expect(invitee).toHaveURL(/\/projects$/);
+  await expect(invitee).toHaveURL(/:3000\/$/);
+  await invitee.goto("/projects");
   await expect(invitee.getByText(projectName, { exact: true })).toBeVisible();
   await expect(invitee.getByText(SEED_PROJECT_NAME)).toHaveCount(0);
 
@@ -129,7 +131,7 @@ test("an invited user sets a password and sees only their project", async ({ pag
   // The new account signs in with its password.
   await context.clearCookies();
   await signIn(invitee, inviteeEmail, inviteePassword);
-  await expect(invitee).toHaveURL(/\/projects$/);
+  await expect(invitee).toHaveURL(/:3000\/$/);
   await context.close();
 
   // The owner sees the accepted member in the directory.
@@ -151,11 +153,11 @@ test("a member resets a forgotten password through the emailed link", async ({ p
   await page.goto(link);
   await page.getByLabel("New password").fill(newPassword);
   await page.getByRole("button", { name: "Save password" }).click();
-  await expect(page).toHaveURL(/\/projects$/);
+  await expect(page).toHaveURL(/:3000\/$/);
 
   await page.getByRole("button", { name: "Account menu" }).click();
   await page.getByRole("menuitem", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/login/);
   await signIn(page, email, newPassword);
-  await expect(page).toHaveURL(/\/projects$/);
+  await expect(page).toHaveURL(/:3000\/$/);
 });
