@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase
+        run: supabase start
+
+      # Fails when a table has no RLS test file, then runs the pgTAP tests.
+      - name: RLS tests
+        run: pnpm test:rls
+
+      - name: Generated database types are up to date
+        run: |
+          pnpm db:types
+          git diff --exit-code src/lib/db.types.ts
+
+      - name: Write .env.local for the end-to-end run
+        run: |
+          supabase status -o env > supabase.env
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$(grep '^API_URL=' supabase.env | cut -d= -f2- | tr -d '"')"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(grep '^ANON_KEY=' supabase.env | cut -d= -f2- | tr -d '"')"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$(grep '^SERVICE_ROLE_KEY=' supabase.env | cut -d= -f2- | tr -d '"')"
+            echo "NEXT_PUBLIC_APP_URL=http://localhost:3000"
+            echo "OWNER_EMAIL=owner@shotlyst.test"
+            echo "LOGIN_THROTTLE_SECRET=ci-throttle-secret"
+            echo "CRON_SECRET=ci-cron-secret"
+          } > .env.local
+          rm supabase.env
+
+      # The pgTAP helpers and earlier steps leave test objects behind.
+      - name: Reset the database to the seed
+        run: supabase db reset
+
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        run: pnpm e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
