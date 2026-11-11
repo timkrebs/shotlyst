@@ -1,6 +1,15 @@
 "use client";
 
-import { Building2, FolderKanban, House, Settings, Sparkles, User, Users } from "lucide-react";
+import {
+  Building2,
+  Drama,
+  FolderKanban,
+  House,
+  Settings,
+  Sparkles,
+  User,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -25,6 +34,7 @@ const SECTIONS: { title: string | null; items: NavItem[] }[] = [
   {
     title: en.nav.library,
     items: [
+      { href: "/library/talents", label: en.nav.talents, icon: Drama },
       { href: "/library/brands", label: en.nav.brands, icon: Sparkles },
       { href: "/library/clients", label: en.nav.clients, icon: Building2 },
     ],

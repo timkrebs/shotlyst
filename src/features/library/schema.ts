@@ -49,3 +49,6 @@ export const clientValues = z.object({
 export const saveBrandSchema = z.object({ id: z.uuid().nullable(), values: brandValues });
 export const saveClientSchema = z.object({ id: z.uuid().nullable(), values: clientValues });
 export const libraryIdSchema = z.object({ id: z.uuid() });
+
+// Shared with the other library lists (talents).
+export { name as libraryName, optionalText };

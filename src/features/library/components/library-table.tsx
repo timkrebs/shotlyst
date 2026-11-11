@@ -1,10 +1,12 @@
 "use client";
 
 import { Pencil, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState, type FormEvent } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-button";
 import { FormError, FormField } from "@/components/form-field";
+import { NativeSelect } from "@/components/native-select";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,8 +32,13 @@ import { en } from "@/messages/en";
 export interface LibraryField<K extends string> {
   key: K;
   label: string;
-  type: "text" | "textarea" | "email" | "url" | "tel";
+  type: "text" | "textarea" | "email" | "url" | "tel" | "date" | "number" | "select";
   required?: boolean;
+  hint?: string;
+  // For "select": the stored values with their labels.
+  options?: { value: string; label: string }[];
+  // For "number": the step of the input, for example "0.01".
+  step?: string;
   // Shown as a table column.
   column?: boolean;
 }
@@ -42,22 +49,33 @@ export interface LibraryItem<K extends string> {
   values: Record<K, string>;
 }
 
+// What a field shows in the table and matches in the search: the label of
+// a select option, otherwise the value itself.
+function displayValue<K extends string>(field: LibraryField<K>, value: string): string {
+  if (field.type !== "select") return value;
+  return field.options?.find((option) => option.value === value)?.label ?? value;
+}
+
 // One searchable table with a create and edit dialog, shared by the simple
-// library lists (brands, clients).
+// library lists (brands, clients, talents).
 export function LibraryTable<K extends string>({
   labels,
   fields,
   items,
   currentUserId,
   isAdmin,
+  detailPath,
   onSave,
   onDelete,
 }: {
-  labels: { add: string; edit: string; empty: string; deleteTitle: (name: string) => string };
+  // Plain text only: pages are Server Components and cannot pass functions.
+  labels: { add: string; edit: string; empty: string };
   fields: LibraryField<K>[];
   items: LibraryItem<K>[];
   currentUserId: string;
   isAdmin: boolean;
+  // When set, the first column links to `<detailPath>/<id>`.
+  detailPath?: string;
   onSave: (input: { id: string | null; values: Record<K, string> }) => Promise<ActionResult>;
   onDelete: (input: { id: string }) => Promise<ActionResult>;
 }) {
@@ -77,7 +95,9 @@ export function LibraryTable<K extends string>({
     const needle = search.trim().toLowerCase();
     if (!needle) return items;
     return items.filter((item) =>
-      fields.some((field) => item.values[field.key].toLowerCase().includes(needle)),
+      fields.some((field) =>
+        displayValue(field, item.values[field.key]).toLowerCase().includes(needle),
+      ),
     );
   }, [fields, items, search]);
 
@@ -129,7 +149,13 @@ export function LibraryTable<K extends string>({
                     key={field.key}
                     className={index === 0 ? "font-medium" : "text-muted-foreground"}
                   >
-                    {item.values[field.key] || "–"}
+                    {index === 0 && detailPath ? (
+                      <Link href={`${detailPath}/${item.id}`} className="hover:underline">
+                        {item.values[field.key]}
+                      </Link>
+                    ) : (
+                      displayValue(field, item.values[field.key]) || "–"
+                    )}
                   </TableCell>
                 ))}
                 <TableCell>
@@ -175,8 +201,21 @@ export function LibraryTable<K extends string>({
             {fields.map((field) => {
               const id = `library-${field.key}`;
               return (
-                <FormField key={field.key} id={id} label={field.label}>
-                  {field.type === "textarea" ? (
+                <FormField key={field.key} id={id} label={field.label} hint={field.hint}>
+                  {field.type === "select" ? (
+                    <NativeSelect
+                      id={id}
+                      name={field.key}
+                      required={field.required}
+                      defaultValue={current?.values[field.key] ?? field.options?.[0]?.value ?? ""}
+                    >
+                      {field.options?.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  ) : field.type === "textarea" ? (
                     <Textarea
                       id={id}
                       name={field.key}
@@ -189,6 +228,8 @@ export function LibraryTable<K extends string>({
                       name={field.key}
                       type={field.type}
                       required={field.required}
+                      min={field.type === "number" ? 0 : undefined}
+                      step={field.type === "number" ? (field.step ?? "1") : undefined}
                       defaultValue={current?.values[field.key] ?? ""}
                     />
                   )}
@@ -209,7 +250,7 @@ export function LibraryTable<K extends string>({
         onOpenChange={(open) => {
           if (!open) setDeleting(null);
         }}
-        title={labels.deleteTitle(deleting?.values[nameKey] ?? "")}
+        title={en.library.deleteTitle(deleting?.values[nameKey] ?? "")}
         description={en.library.deleteDescription}
         confirmLabel={en.common.delete}
         pending={remove.pending}
