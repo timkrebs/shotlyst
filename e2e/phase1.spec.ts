@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import {
+  adminClient,
   linkFromEmail,
   OWNER_EMAIL,
   PNG,
@@ -160,4 +161,10 @@ test("a member resets a forgotten password through the emailed link", async ({ p
   await expect(page).toHaveURL(/\/login/);
   await signIn(page, email, newPassword);
   await expect(page).toHaveURL(/:3000\/$/);
+
+  // Put the seed password back, so later tests can sign in as this user.
+  const admin = adminClient();
+  const { data } = await admin.auth.admin.listUsers();
+  const user = data.users.find((candidate) => candidate.email === email);
+  await admin.auth.admin.updateUserById(user!.id, { password: SEED_PASSWORD });
 });
