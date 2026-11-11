@@ -19,10 +19,12 @@ export function BoardBar({
   projectId,
   boards,
   current,
+  creatives,
 }: {
   projectId: string;
   boards: Board[];
   current: Board;
+  creatives: { id: string; title: string }[];
 }) {
   const router = useRouter();
   const { canEdit } = usePermissions(projectId);
@@ -35,7 +37,8 @@ export function BoardBar({
     event.preventDefault();
     const input = event.currentTarget.elements.namedItem("title") as HTMLInputElement;
     if (!input.value.trim()) return;
-    create.run({ projectId, title: input.value });
+    const creative = event.currentTarget.elements.namedItem("creativeId") as HTMLSelectElement;
+    create.run({ projectId, title: input.value, creativeId: creative.value || null });
     input.value = "";
   }
 
@@ -72,7 +75,7 @@ export function BoardBar({
         >
           {boards.map((board) => (
             <option key={board.id} value={board.id}>
-              {board.title}
+              {board.creative ? `${board.title} · ${board.creative.title}` : board.title}
             </option>
           ))}
         </NativeSelect>
@@ -102,6 +105,19 @@ export function BoardBar({
               className="h-8 w-44"
               maxLength={120}
             />
+            <NativeSelect
+              name="creativeId"
+              aria-label={en.moodboard.boardCreative}
+              className="h-8 w-44"
+              defaultValue=""
+            >
+              <option value="">{en.moodboard.wholeProject}</option>
+              {creatives.map((creative) => (
+                <option key={creative.id} value={creative.id}>
+                  {creative.title}
+                </option>
+              ))}
+            </NativeSelect>
             <Button type="submit" variant="outline" size="sm" disabled={create.pending}>
               {en.common.add}
             </Button>

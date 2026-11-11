@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { BoardBar } from "@/features/moodboard/components/board-bar";
 import { MoodboardCanvas } from "@/features/moodboard/components/moodboard-canvas";
 import { getBoardContent, listBoards, listLibraryImages } from "@/features/moodboard/queries";
+import { listCreatives } from "@/features/shots/queries";
 import { requireProjectPage } from "@/lib/permissions/guards";
 import { projectPermissions } from "@/lib/permissions/roles";
 
@@ -18,14 +19,20 @@ export default async function MoodboardPage({
   const board = boards.find((candidate) => candidate.id === boardParam) ?? boards[0];
   if (!board) notFound();
 
-  const [content, libraryImages] = await Promise.all([
+  const [content, libraryImages, creatives] = await Promise.all([
     getBoardContent(supabase, board.id),
     listLibraryImages(supabase, id),
+    listCreatives(supabase, id),
   ]);
 
   return (
     <>
-      <BoardBar projectId={id} boards={boards} current={board} />
+      <BoardBar
+        projectId={id}
+        boards={boards}
+        current={board}
+        creatives={creatives.map((creative) => ({ id: creative.id, title: creative.title }))}
+      />
       <MoodboardCanvas
         key={board.id}
         projectId={id}

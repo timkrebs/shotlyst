@@ -5,7 +5,10 @@ import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/componen
 import { UserAvatar } from "@/components/user-avatar";
 import { listBrands, listClients } from "@/features/library/queries";
 import { listActiveProfiles } from "@/features/members/queries";
-import { ProjectActions } from "@/features/projects/components/project-actions";
+import {
+  DuplicateProjectDialog,
+  ProjectActions,
+} from "@/features/projects/components/project-actions";
 import { ProjectFormDialog } from "@/features/projects/components/project-form-dialog";
 import { ProjectMembersDialog } from "@/features/projects/components/project-members-dialog";
 import {
@@ -26,13 +29,14 @@ export default async function ProjectOverviewPage({
   const { supabase, profile, role } = await requireProjectPage(id);
   const { canEdit } = projectPermissions(role);
 
-  const [project, members, activity, clients, brands, profiles] = await Promise.all([
+  const [project, members, activity, clients, brands, profiles, nextNumber] = await Promise.all([
     getProject(supabase, id),
     listProjectMembers(supabase, id),
     listProjectActivity(supabase, id),
     listClients(supabase),
     listBrands(supabase),
     listActiveProfiles(supabase),
+    supabase.rpc("next_project_number").then(({ data }) => data ?? ""),
   ]);
   if (!project) notFound();
 
@@ -55,8 +59,13 @@ export default async function ProjectOverviewPage({
       <Card className="lg:col-span-2">
         <CardHeader>
           <CardTitle>{en.projects.details}</CardTitle>
-          {canEdit ? (
-            <CardAction className="flex flex-wrap gap-2">
+          <CardAction className="flex flex-wrap gap-2">
+            <DuplicateProjectDialog
+              projectId={project.id}
+              name={project.name}
+              suggestedNumber={nextNumber}
+            />
+            {canEdit ? (
               <ProjectFormDialog
                 trigger={
                   <Button variant="outline" size="sm">
@@ -79,13 +88,13 @@ export default async function ProjectOverviewPage({
                   status,
                 }}
               />
-              <ProjectActions
-                projectId={project.id}
-                name={project.name}
-                archived={project.archived_at !== null}
-              />
-            </CardAction>
-          ) : null}
+            ) : null}
+            <ProjectActions
+              projectId={project.id}
+              name={project.name}
+              archived={project.archived_at !== null}
+            />
+          </CardAction>
         </CardHeader>
         <CardContent className="grid gap-4">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">

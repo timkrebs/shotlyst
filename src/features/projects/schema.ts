@@ -42,6 +42,11 @@ export const updateProjectSchema = z.object({
 });
 
 export const projectIdSchema = z.object({ projectId: z.uuid() });
+export const duplicateProjectSchema = z.object({
+  projectId: z.uuid(),
+  name: details.name,
+  projectNumber: details.projectNumber,
+});
 export const archiveProjectSchema = z.object({ projectId: z.uuid(), archived: z.boolean() });
 export const setCoverSchema = z.object({ projectId: z.uuid(), fileId: z.uuid().nullable() });
 

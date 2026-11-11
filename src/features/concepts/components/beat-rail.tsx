@@ -19,6 +19,8 @@ import { analyzeBeats, formatSeconds, parseSeconds } from "@/lib/concepts/beats"
 import { cn } from "@/lib/utils";
 import { en } from "@/messages/en";
 
+import { beatsToSegments } from "@/features/shots/actions";
+
 import { addBeatItem, deleteBeat, deleteBeatItem, saveBeat, toggleBeatItem } from "../actions";
 import type { Beat } from "../queries";
 
@@ -42,6 +44,7 @@ export function BeatRail({
   const addItem = useAction(addBeatItem);
   const toggleItem = useAction(toggleBeatItem);
   const removeItem = useAction(deleteBeatItem);
+  const toSegments = useAction(beatsToSegments);
 
   const analysis = analyzeBeats(beats);
   const layout = new Map(analysis.layout.map((entry) => [entry.id, entry]));
@@ -219,6 +222,20 @@ export function BeatRail({
           </li>
         ))}
       </ol>
+
+      {canEdit && beats.length > 0 ? (
+        <div className="grid gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={toSegments.pending}
+            onClick={() => toSegments.run({ projectId, conceptId })}
+          >
+            {en.concepts.beats.toSegments}
+          </Button>
+          <p className="text-muted-foreground text-xs">{en.concepts.beats.toSegmentsHint}</p>
+        </div>
+      ) : null}
 
       <Dialog
         open={editing !== null}

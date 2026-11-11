@@ -88,11 +88,11 @@ export const saveBoardChanges = defineAction(saveBoardSchema, async (input) => {
   }
 });
 
-export const createBoard = defineAction(createBoardSchema, async ({ projectId, title }) => {
+export const createBoard = defineAction(createBoardSchema, async ({ projectId, title, creativeId }) => {
   const { supabase, user } = await requireProjectRole(projectId, "editor");
   const { data, error } = await supabase
     .from("moodboards")
-    .insert({ project_id: projectId, title, created_by: user.id })
+    .insert({ project_id: projectId, title, creative_id: creativeId, created_by: user.id })
     .select("id")
     .single();
   if (error) throw new ActionError(en.moodboard.errors.saveFailed);

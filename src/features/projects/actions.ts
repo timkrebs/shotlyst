@@ -14,6 +14,7 @@ import { en } from "@/messages/en";
 import {
   archiveProjectSchema,
   createProjectSchema,
+  duplicateProjectSchema,
   projectIdSchema,
   projectMemberSchema,
   removeProjectMemberSchema,
@@ -154,6 +155,34 @@ export const deleteProject = defineAction(projectIdSchema, async ({ projectId })
   });
   revalidatePath("/projects");
   redirect("/projects");
+});
+
+// Copies a project's structure and shots into a new project. Reading the
+// source is enough; the caller becomes editor of the copy.
+export const duplicateProject = defineAction(duplicateProjectSchema, async (input) => {
+  const { supabase } = await requireProjectRole(input.projectId, "viewer");
+  const { data: newId, error } = await supabase.rpc("duplicate_project", {
+    p_project_id: input.projectId,
+    p_name: input.name,
+    p_project_number: input.projectNumber,
+  });
+  if (error || !newId) {
+    throw new ActionError(
+      error?.code === UNIQUE_VIOLATION
+        ? en.projects.errors.numberTaken
+        : en.projects.errors.createFailed,
+    );
+  }
+
+  await logActivity(supabase, {
+    projectId: newId,
+    action: "project.duplicated",
+    entityType: "project",
+    entityId: newId,
+    summary: en.activity.projectDuplicated(input.name),
+  });
+  revalidatePath("/projects");
+  redirect(`/projects/${newId}/overview`);
 });
 
 export const setProjectCover = defineAction(setCoverSchema, async ({ projectId, fileId }) => {

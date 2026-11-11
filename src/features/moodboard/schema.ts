@@ -49,7 +49,12 @@ const title = z
   .min(1, { error: en.validation.nameRequired })
   .max(120, { error: en.validation.nameTooLong });
 
-export const createBoardSchema = z.object({ projectId: z.uuid(), title });
+export const createBoardSchema = z.object({
+  projectId: z.uuid(),
+  title,
+  // Optional: the creative this board belongs to.
+  creativeId: z.uuid().nullable(),
+});
 export const renameBoardSchema = z.object({ projectId: z.uuid(), boardId: z.uuid(), title });
 export const boardIdSchema = z.object({ projectId: z.uuid(), boardId: z.uuid() });
 

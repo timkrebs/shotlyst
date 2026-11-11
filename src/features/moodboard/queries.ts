@@ -7,7 +7,7 @@ import type { BoardNodeType, EdgeRow, NodeRow } from "./schema";
 export async function listBoards(supabase: ServerClient, projectId: string) {
   const { data, error } = await supabase
     .from("moodboards")
-    .select("id, title")
+    .select("id, title, creative:creatives(title)")
     .eq("project_id", projectId)
     .order("created_at");
   if (error) throw new Error(error.message);
